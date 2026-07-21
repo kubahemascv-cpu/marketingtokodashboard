@@ -33,8 +33,10 @@ body.dark{
 body{font-family:var(--font);background:var(--bg);color:var(--txt);min-height:100vh;transition:background .25s,color .25s}
 
 /* ── TOPBAR ── */
-.topbar{background:var(--ch);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.topbar{background:var(--ch);padding:10px 20px 0;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,.3)}
 body.dark .topbar{background:#0D0E12;border-bottom:1px solid var(--bdr)}
+.topbar-row1{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px}
+.topbar-row2{display:flex;align-items:center;gap:8px;padding:8px 0 10px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.08)}
 .brand{display:flex;align-items:center;gap:12px}
 .brand-logo{width:36px;height:36px;border-radius:9px;background:var(--yl);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--ch);flex-shrink:0}
 .brand-name{font-size:14px;font-weight:700;color:#fff;line-height:1.2}
@@ -152,14 +154,17 @@ body.dark .pill.warn{background:#292200;color:#FCD34D}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">
-    <div class="brand-logo">KE</div>
-    <div>
-      <div class="brand-name">Executive Marketing Dashboard</div>
-      <div class="brand-sub">Divisi Toko — Kubah Emas</div>
+  <div class="topbar-row1">
+    <div class="brand">
+      <div class="brand-logo">KE</div>
+      <div>
+        <div class="brand-name">Executive Marketing Dashboard</div>
+        <div class="brand-sub">Divisi Toko — Kubah Emas</div>
+      </div>
     </div>
+    <button class="tbtn" id="btn-theme">☀️</button>
   </div>
-  <div class="topbar-right">
+  <div class="topbar-row2">
     <select class="month-sel" id="sel-month"></select>
     <button class="tbtn" id="btn-export" onclick="exportData()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -169,8 +174,7 @@ body.dark .pill.warn{background:#292200;color:#FCD34D}
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
-    <button class="tbtn" id="btn-theme">☀️</button>
-    <span class="update-badge" id="update-badge"></span>
+    <span class="update-badge" id="update-badge" style="margin-left:auto"></span>
   </div>
 </header>
 
@@ -253,15 +257,6 @@ body.dark .pill.warn{background:#292200;color:#FCD34D}
   <span class="slbl">🔍 Diagnosa Otomatis</span>
   <div class="diag-grid" id="diagnose-panel">
     <div class="diag-item info"><div class="diag-ico">⏳</div><div><div class="diag-title">Memuat data...</div><div class="diag-body">Diagnosa akan muncul setelah semua data berhasil dimuat.</div></div></div>
-  </div>
-
-  <!-- HISTORICAL TABLE -->
-  <span class="slbl">📅 Rekap Bulanan (Year to Date)</span>
-  <div class="tbl-box">
-    <table class="tbl">
-      <thead><tr id="hist-head"></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="6" class="empty-box">Memuat data historis...</td></tr></tbody>
-    </table>
   </div>
 
   </div><!-- /kpi-marketing -->
@@ -622,7 +617,6 @@ function renderAll(){
   renderAdPanel(data);
   renderCharts(data);
   renderDiagnose(data);
-  renderHistTable();
   loadAdInputsUI(SEL_MONTH);
 }
 

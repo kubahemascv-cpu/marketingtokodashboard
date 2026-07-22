@@ -147,7 +147,17 @@ body.dark .diag-item.warn .diag-title{color:#FCD34D}
 .pill.warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
 body.dark .pill.warn{background:#292200;color:#FCD34D}
 
-/* ── EMPTY / LOADING ── */
+/* ── SECTION NOTE ── */
+.sec-note{border-radius:10px;padding:10px 14px;font-size:11.5px;line-height:1.65;margin-bottom:20px;display:flex;gap:9px;align-items:flex-start}
+.sec-note-ico{font-size:15px;flex-shrink:0;margin-top:1px}
+.sec-note.ok{background:var(--grn-l);border:1px solid #BBF7D0;color:#15803D}
+.sec-note.warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+.sec-note.bad{background:var(--red-l);border:1px solid #FECACA;color:var(--red)}
+.sec-note.info{background:var(--blue-l);border:1px solid #BFDBFE;color:#1D4ED8}
+body.dark .sec-note.ok{background:#0D2818;border-color:#14532D;color:#4ADE80}
+body.dark .sec-note.warn{background:#292200;border-color:#7C5800;color:#FCD34D}
+body.dark .sec-note.bad{background:#2A0808;border-color:#7F1D1D;color:#F87171}
+body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
 .empty-box{text-align:center;padding:30px;color:var(--mut);font-size:12px}
 .loader-spin{display:inline-block;width:18px;height:18px;border:2px solid var(--bdr);border-top-color:var(--yl);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 </style>
@@ -194,6 +204,7 @@ body.dark .pill.warn{background:#292200;color:#FCD34D}
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
   </div>
+  <div id="note-omzet"></div>
 
   <!-- KPI ROW 2: TRANSAKSI & LEADS -->
   <span class="slbl">🛒 Transaksi, Leads & Konversi</span>
@@ -203,6 +214,7 @@ body.dark .pill.warn{background:#292200;color:#FCD34D}
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
   </div>
+  <div id="note-transaksi"></div>
 
   <!-- AD SPEND INPUT -->
   <span class="slbl">💰 Biaya Marketing & ROAS</span>
@@ -231,7 +243,9 @@ body.dark .pill.warn{background:#292200;color:#FCD34D}
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
   </div>
 
-  <!-- CHARTS -->
+  <!-- CHARTS + DIAGNOSA PER SECTION -->
+  <div id="note-marketing"></div>
+
   <span class="slbl">📈 Tren Harian</span>
   <div class="chart-grid">
     <div class="chart-box">
@@ -239,27 +253,28 @@ body.dark .pill.warn{background:#292200;color:#FCD34D}
         <div class="chart-title">Omzet Harian Aktual vs Target Harian</div>
         <span class="chart-badge" id="chart-badge-1">—</span>
       </div>
-      <canvas id="chart-daily"></canvas>
+      <canvas id="chart-daily" style="min-height:280px"></canvas>
+      <div id="note-chart" style="margin-top:12px"></div>
     </div>
     <div class="chart-box">
       <div class="chart-hd">
         <div class="chart-title">Distribusi Leads</div>
         <span class="chart-badge" id="chart-badge-2">—</span>
       </div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Kol I — Intensi Leads (Beli / Tanya / TTB)</div>
-      <canvas id="chart-leads" style="max-height:160px"></canvas>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:14px 0 6px;border-top:1px solid var(--bdr);padding-top:12px">Kol K — Aksi CS (Follow Up / Arsip / Beli)</div>
-      <canvas id="chart-leads-2" style="max-height:160px"></canvas>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Kol I — Intensi Leads</div>
+      <canvas id="chart-leads" style="max-height:155px"></canvas>
+      <div id="note-leads-1"></div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:12px 0 6px;border-top:1px solid var(--bdr);padding-top:10px">Kol K — Aksi CS</div>
+      <canvas id="chart-leads-2" style="max-height:155px"></canvas>
+      <div id="note-leads-2"></div>
     </div>
   </div>
 
   <!-- AUTOMATED DIAGNOSE -->
-  <span class="slbl">🔍 Diagnosa Otomatis</span>
+  <span class="slbl">🔍 Diagnosa Otomatis — Ringkasan Keseluruhan</span>
   <div class="diag-grid" id="diagnose-panel">
     <div class="diag-item info"><div class="diag-ico">⏳</div><div><div class="diag-title">Memuat data...</div><div class="diag-body">Diagnosa akan muncul setelah semua data berhasil dimuat.</div></div></div>
   </div>
-
-  </div><!-- /kpi-marketing -->
 
 </div><!-- /main -->
 
@@ -610,11 +625,132 @@ function getMonthData(ym){
     leads:leadM,pivot_tx_month:pivot_tx_month,pivot_omzet_month:pivot_month,isCurrentMonth:isCurrentMonth,hist:hist};
 }
 
+// ── SECTION NOTES ────────────────────────────────────
+function secNote(type,ico,msg){
+  return'<div class="sec-note '+type+'">'
+    +'<span class="sec-note-ico">'+ico+'</span>'
+    +'<span>'+msg+'</span></div>';
+}
+
+function renderSectionNotes(d){
+  var ap=d.achievement_pct, ld=d.leads, lt=ld.total||1;
+  var ttbPct=Math.round(pct(ld.ttb,lt));
+
+  // ── 1. TARGET VS REALISASI ──────────────────────────
+  var n1='';
+  if(ap>=100){
+    n1=secNote('ok','🏆','Target sudah terlampaui '+ap+'% — omzet '+fmtS(d.omset_real)+' melebihi target '+fmtS(d.target)+' sebesar +'+fmtS(Math.abs(d.gap_omzet))+'.');
+  } else if(ap>=80&&d.hari_kerja>0){
+    var hariEstimasi=22-d.hari_kerja;
+    var perHari=hariEstimasi>0?Math.round(d.gap_omzet/hariEstimasi):0;
+    n1=secNote('ok','🎯','Pencapaian '+ap+'% dari target. Sisa gap '+fmtS(d.gap_omzet)+'.'+(perHari?' Butuh rata-rata '+fmtS(perHari)+'/hari di '+hariEstimasi+' hari tersisa.':''));
+  } else if(ap>=60){
+    n1=secNote('warn','⚠️','Pencapaian baru '+ap+'% — masih tertinggal '+fmtS(d.gap_omzet)+' dari target. Omzet real '+fmtS(d.omset_real)+' dari target '+fmtS(d.target)+'.');
+  } else if(ap>0){
+    n1=secNote('bad','🔴','Pencapaian kritis: '+ap+'%. Gap sebesar '+fmtS(d.gap_omzet)+' sangat besar relatif terhadap progress bulan ini.');
+  } else {
+    n1=secNote('info','📊','Data target atau omzet real belum tersedia untuk bulan ini.');
+  }
+
+  // ── 2. TRANSAKSI, LEADS & KONVERSI ─────────────────
+  var n2='';
+  if(!ld.total){
+    n2=secNote('info','📊','Data leads belum termuat dari Database TDK bulan ini.');
+  } else if(d.cr_online>=10&&ttbPct<40){
+    n2=secNote('ok','✅','CR Online '+d.cr_online+'% — di atas benchmark 10%. '+ld.beli+' dari '+ld.total+' leads WA berhasil closing. TTB hanya '+ttbPct+'% — kualitas traffic terjaga.');
+  } else if(ttbPct>=50){
+    n2=secNote('bad','👻',ttbPct+'% leads tidak respons sama sekali (TTB = '+ld.ttb+' dari '+ld.total+'). CR Online '+d.cr_online+'%. Traffic masuk tapi tidak menghasilkan interaksi.');
+  } else if(d.cr_online<5){
+    n2=secNote('warn','📉','CR Online rendah: '+d.cr_online+'%. Dari '+ld.total+' leads WA, hanya '+ld.beli+' yang closing. '+ld.tanya+' leads masih di status Tanya — ada potensi yang belum terkonversi.');
+  } else {
+    n2=secNote('info','📋',''+ld.total+' leads WA bulan ini. Beli: '+ld.beli+' · Tanya: '+ld.tanya+' · TTB: '+ld.ttb+'. CR Online: '+d.cr_online+'%. CR Offline: '+(d.cr_offline?'100%':'—')+'.');
+  }
+
+  // ── 3. BIAYA MARKETING & ROAS ───────────────────────
+  var n3='';
+  if(!d.actual_spend){
+    n3=secNote('info','💡','Biaya iklan bulan ini belum diisi. Masukkan angka di kolom input atas untuk menghitung ROAS dan Cost per Lead secara otomatis.');
+  } else if(d.roas>=8){
+    n3=secNote('ok','🚀','ROAS '+d.roas+'x — iklan sangat efisien. Setiap Rp 1 biaya iklan menghasilkan Rp '+d.roas+' omzet. CPL: '+fmt(d.cpl)+' per lead.');
+  } else if(d.roas>=5){
+    n3=secNote('warn','📊','ROAS '+d.roas+'x — di atas minimum 5x tapi belum optimal. CPL: '+fmt(d.cpl)+'. Masih ada ruang untuk meningkatkan efisiensi iklan.');
+  } else {
+    n3=secNote('bad','📉','ROAS hanya '+d.roas+'x — di bawah standar minimum 5x. Total spend '+fmt(d.actual_spend)+' menghasilkan omzet '+fmtS(d.omset_real)+'. CPL: '+fmt(d.cpl)+'.');
+  }
+
+  // ── 4. TREN HARIAN ──────────────────────────────────
+  var n4='';
+  var pivot=d.pivot_omzet_month||[];
+  if(!pivot.length){
+    n4=secNote('info','📅','Data tren harian belum tersedia untuk bulan '+ymLabel(d.ym)+'. Pastikan sheet PIVOT sudah diisi.');
+  } else {
+    var hariMeetTarget=pivot.filter(function(r){return(r.val||0)>=(d.target_harian||0);}).length;
+    var totalHari=pivot.length;
+    var totalPivotOmzet=pivot.reduce(function(s,r){return s+(r.val||0);},0);
+    var maxDay=pivot.reduce(function(best,r){return(r.val||0)>(best.val||0)?r:best;},pivot[0]);
+    var maxLabel=maxDay&&maxDay.date instanceof Date?String(maxDay.date.getDate()).padStart(2,'0')+'/'+String(maxDay.date.getMonth()+1).padStart(2,'0'):maxDay?maxDay.label:'?';
+    var pctMeet=Math.round(pct(hariMeetTarget,totalHari));
+    if(pctMeet>=70){
+      n4=secNote('ok','📈',hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) sudah memenuhi target harian '+fmtS(d.target_harian)+'. Hari terbaik: '+maxLabel+' ('+fmtS(maxDay?maxDay.val:0)+').');
+    } else if(pctMeet>=40){
+      n4=secNote('warn','📊','Hanya '+hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) yang mencapai target harian '+fmtS(d.target_harian)+'. '+( totalHari-hariMeetTarget)+' hari masih di bawah target. Hari terbaik: '+maxLabel+'.');
+    } else {
+      n4=secNote('bad','📉','Hanya '+hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) yang melampaui target harian. Mayoritas hari masih di bawah '+fmtS(d.target_harian)+'/hari.');
+    }
+  }
+
+  document.getElementById('note-omzet').innerHTML=n1;
+  document.getElementById('note-transaksi').innerHTML=n2;
+  document.getElementById('note-marketing').innerHTML=n3;
+  document.getElementById('note-chart').innerHTML=n4;
+
+  // ── 5. DONUT Kol I — Intensi Leads ─────────────────
+  var nL1='';
+  if(!ld.total){
+    nL1=secNote('info','📊','Data leads TDK bulan ini belum termuat.');
+  } else {
+    var beliPct=Math.round(pct(ld.beli,lt));
+    var tanyaPct=Math.round(pct(ld.tanya,lt));
+    if(beliPct>=15){
+      nL1=secNote('ok','✅',beliPct+'% leads WA langsung beli ('+ld.beli+' dari '+ld.total+'). '+tanyaPct+'% masih di Tanya — ada '+ld.tanya+' leads yang bisa di-follow up lagi.');
+    } else if(ttbPct>=50){
+      nL1=secNote('bad','👻',ttbPct+'% leads tidak pernah respons (TTB = '+ld.ttb+'). Ini bisa berarti audience tidak relevan atau CS terlambat balas. Hanya '+beliPct+'% yang closing.');
+    } else if(tanyaPct>=40){
+      nL1=secNote('warn','💬',tanyaPct+'% leads masih di status Tanya ('+ld.tanya+' leads). Segmen ini punya intent tapi belum closing. Prioritaskan follow-up ke kelompok ini.');
+    } else {
+      nL1=secNote('info','📋','Beli: '+ld.beli+' ('+beliPct+'%) · Tanya: '+ld.tanya+' ('+tanyaPct+'%) · TTB: '+ld.ttb+' ('+ttbPct+'%).');
+    }
+  }
+
+  // ── 6. DONUT Kol K — Aksi CS ────────────────────────
+  var nL2='';
+  var kolKBeli=ld.beli||0;
+  var kolKTotal=(ld.follow_up||0)+(ld.arsip||0)+kolKBeli||1;
+  var fuPct=Math.round(pct(ld.follow_up,kolKTotal));
+  var arsipPct=Math.round(pct(ld.arsip,kolKTotal));
+  var closePct=Math.round(pct(kolKBeli,kolKTotal));
+  if(!ld.total){
+    nL2=secNote('info','📊','Data aksi CS belum tersedia.');
+  } else if(fuPct>=60){
+    nL2=secNote('warn','📞',''+fuPct+'% leads masih aktif di-follow up ('+ld.follow_up+' leads). Masih banyak pipeline yang bisa dikonversi. '+closePct+'% sudah closing, '+arsipPct+'% diarsipkan.');
+  } else if(arsipPct>=50){
+    nL2=secNote('bad','🗄️',arsipPct+'% leads sudah diarsipkan ('+ld.arsip+' leads). Cek apakah arsip terlalu cepat dilakukan sebelum leads benar-benar tidak prospek.');
+  } else if(closePct>=15){
+    nL2=secNote('ok','💰',''+closePct+'% leads sudah closing ('+kolKBeli+' beli). '+fuPct+'% masih dalam proses follow up.');
+  } else {
+    nL2=secNote('info','📋','Follow Up: '+ld.follow_up+' ('+fuPct+'%) · Arsip: '+ld.arsip+' ('+arsipPct+'%) · Beli/Closing: '+kolKBeli+' ('+closePct+'%).');
+  }
+
+  document.getElementById('note-leads-1').innerHTML=nL1;
+  document.getElementById('note-leads-2').innerHTML=nL2;
+}
+
 // ── RENDER ALL ────────────────────────────────────────
 function renderAll(){
   var data=getMonthData(SEL_MONTH);
   renderKPIs(data);
   renderAdPanel(data);
+  renderSectionNotes(data);
   renderCharts(data);
   renderDiagnose(data);
   loadAdInputsUI(SEL_MONTH);

@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Executive Marketing Dashboard — Toko</title>
-<meta name="theme-color" content="#1C1E26">
+<meta name="theme-color" content="#C89B00">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Performa Toko">
-<link rel="apple-touch-icon" id="pwa-icon-link">
-<link rel="manifest" id="pwa-manifest">
+<meta name="apple-mobile-web-app-title" content="EXC Toko">
+<meta name="application-name" content="EXC Toko">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -1211,76 +1214,17 @@ document.getElementById('btn-theme').addEventListener('click',function(){
   document.getElementById(id).addEventListener('blur',function(){formatInputOnBlur(id);});
 });
 
-// ── PWA ICON — Performa Toko Bulanan (Yellow + Charcoal) ─
-(function(){
-  var cv=document.createElement('canvas');
-  cv.width=512;cv.height=512;
-  var ctx=cv.getContext('2d');
-
-  // Background gradient kuning
-  var g=ctx.createLinearGradient(0,0,512,512);
-  g.addColorStop(0,'#FFD840');
-  g.addColorStop(1,'#C89B00');
-  var r=110;
-  ctx.beginPath();ctx.moveTo(r,0);
-  ctx.arcTo(512,0,512,r,r);ctx.arcTo(512,512,512-r,512,r);
-  ctx.arcTo(0,512,0,512-r,r);ctx.arcTo(0,0,r,0,r);
-  ctx.closePath();ctx.fillStyle=g;ctx.fill();
-
-  // Depth overlay
-  var ig=ctx.createRadialGradient(160,130,10,256,256,390);
-  ig.addColorStop(0,'rgba(255,255,255,0.18)');
-  ig.addColorStop(1,'rgba(0,0,0,0.12)');
-  ctx.fillStyle=ig;ctx.fill();
-
-  // "PERFORMA" — charcoal, medium
-  ctx.fillStyle='rgba(28,30,38,0.6)';
-  ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  ctx.font='700 62px Arial';
-  ctx.fillText('PERFORMA',256,148);
-
-  // Divider atas
-  ctx.fillStyle='rgba(28,30,38,0.18)';
-  ctx.fillRect(70,162,372,2);
-
-  // "TOKO" — charcoal, besar
-  ctx.fillStyle='#1C1E26';
-  ctx.font='900 185px Arial';
-  ctx.fillText('TOKO',256,320);
-
-  // Divider bawah
-  ctx.fillStyle='rgba(28,30,38,0.18)';
-  ctx.fillRect(70,335,372,2);
-
-  // "BULANAN" — spasi manual, charcoal
-  ctx.fillStyle='rgba(28,30,38,0.65)';
-  ctx.font='700 66px Arial';
-  var letters=['B','U','L','A','N','A','N'];
-  var gap=9,tw=0;
-  var ws=letters.map(function(l){var w=ctx.measureText(l).width;tw+=w;return w;});
-  tw+=gap*(letters.length-1);
-  var cx=256-tw/2;ctx.textAlign='left';
-  letters.forEach(function(l,i){ctx.fillText(l,cx,415);cx+=ws[i]+gap;});
-
-  var png=cv.toDataURL('image/png');
-  var il=document.getElementById('pwa-icon-link');
-  if(il){il.rel='apple-touch-icon';il.href=png;}
-  try{
-    var m={
-      name:'Performa Toko Bulanan',
-      short_name:'Performa Toko',
-      description:'Executive Marketing Dashboard Divisi Toko',
-      start_url:'./',display:'standalone',orientation:'portrait',
-      background_color:'#F5F5F0',theme_color:'#C89B00',
-      icons:[
-        {src:png,sizes:'192x192',type:'image/png'},
-        {src:png,sizes:'512x512',type:'image/png',purpose:'any maskable'}
-      ]
-    };
-    var bl=new Blob([JSON.stringify(m)],{type:'application/json'});
-    document.getElementById('pwa-manifest').href=URL.createObjectURL(bl);
-  }catch(e){}
-})();
+// ── PWA ───────────────────────────────────────────────
+// Icon (icon-192.png, icon-512.png) dan manifest.json sekarang file
+// statis di folder yang sama — bukan digambar ulang tiap app dibuka.
+// <link rel="manifest">/"apple-touch-icon" di <head> sudah nunjuk ke situ.
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(r){console.log('[SW] OK',r.scope);})
+      .catch(function(e){console.warn('[SW]',e);});
+  });
+}
 
 // ── INIT ─────────────────────────────────────────────
 var theme=lsGet('exec_theme','light');

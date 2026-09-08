@@ -51,6 +51,7 @@ body.dark .topbar{background:#0D0E12;border-bottom:1px solid var(--bdr)}
 .tbtn.spin svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .month-sel{height:34px;padding:0 28px 0 10px;border-radius:8px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.85);font-family:var(--font);font-size:11.5px;font-weight:600;cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,.6)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;outline:none}
+.month-now-lbl{height:34px;padding:0 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.85);font-family:var(--font);font-size:11.5px;font-weight:600;display:flex;align-items:center}
 .update-badge{font-size:10px;color:rgba(255,255,255,.35);white-space:nowrap}
 
 /* ── LAYOUT ── */
@@ -178,7 +179,7 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <button class="tbtn" id="btn-theme">☀️</button>
   </div>
   <div class="topbar-row2">
-    <select class="month-sel" id="sel-month"></select>
+    <span class="month-now-lbl" id="month-now-lbl"></span>
     <button class="tbtn" id="btn-export" onclick="exportData()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Export CSV
@@ -199,9 +200,11 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <span>Mengambil data dari 4 Google Sheets...</span>
   </div>
 
-  <!-- KPI ROW 1: OMZET -->
+  <!-- KPI ROW 1: OMZET + BIAYA IKLAN + ROAS (card utama) -->
   <span class="slbl">📊 Target vs Realisasi Omzet</span>
   <div class="kpi-grid" id="kpi-omzet">
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
@@ -209,38 +212,9 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
   </div>
   <div id="note-omzet"></div>
 
-  <!-- KPI ROW 2: TRANSAKSI & LEADS -->
-  <span class="slbl">🛒 Transaksi, Leads & Konversi</span>
-  <div class="kpi-grid" id="kpi-transaksi">
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-  </div>
-  <div id="note-transaksi"></div>
-
-  <!-- AD SPEND INPUT -->
-  <span class="slbl">💰 Biaya Marketing & ROAS</span>
-  <div class="ad-panel">
-    <div class="ad-title">
-      ✏️ Input Biaya Iklan Manual
-      <span style="font-size:10px;color:var(--mut);font-weight:400">(tersimpan per bulan)</span>
-    </div>
-    <div class="ad-grid">
-      <div>
-        <label class="flbl">Biaya Iklan Bulan Ini (Rp)</label>
-        <input class="finp" type="text" inputmode="numeric" id="inp-adspend" placeholder="0">
-      </div>
-      <div>
-        <label class="flbl">Target Omzet Custom (Rp)</label>
-        <input class="finp" type="text" inputmode="numeric" id="inp-target" placeholder="Gunakan data sheet">
-      </div>
-      <button class="btn-save" onclick="saveAdInputs()">💾 Simpan</button>
-    </div>
-    <div class="ad-result" id="ad-result"></div>
-  </div>
+  <!-- EFISIENSI MARKETING (sisa dari Biaya Marketing & ROAS, ROAS sudah pindah ke atas) -->
+  <span class="slbl">📈 Efisiensi Marketing</span>
   <div class="kpi-grid" id="kpi-marketing">
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
@@ -284,21 +258,21 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
 <script>
 // ── CONFIG ───────────────────────────────────────────
 var SHEETS = {
-  // Sheet 1: DATA SUMBER — budget & revenue TOKO per bulan (baris 22-33 = Jan-Des)
-  sumber: { id:'1gY81GJUFhurnA6QisurFLvRzusPzc06KY9b6Gv3V4L4', sheet:'DATA SUMBER', range:'A22:E33', headers:0 },
-  // Sheet 3: DASHBOARD — KPI current month (Omset Real, Forecast, Hari Kerja)
-  dashboard: { id:'1Ag2wEb_jP4R2RcN-fI-Em7LiDcIZwSf6PweJuXic9QM', sheet:'DASHBOARD', range:'B1:D16', headers:0 },
+  // Sheet BARU: REPORT V.2 — snapshot Omzet Real & Forecast (Target) BULAN BERJALAN saja
+  report_now: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT V.2', range:'A1:E6', headers:0 },
+  // Sheet BARU: OMZET tab — Biaya Iklan per bulan (A=Tahun, B=Bulan, F=Iklan)
+  iklan: { id:'1Pv2b04WvHOCtT5Dcd4YvXyn8G3MP5VPbPXEmN5nC6Vc', sheet:'OMZET', range:'A2:F400', headers:0 },
   // Sheet 3: PIVOT col D (tanggal) & E (jumlah transaksi/nota harian) mulai baris 10
   pivot_tx: { id:'1Ag2wEb_jP4R2RcN-fI-Em7LiDcIZwSf6PweJuXic9QM', sheet:'PIVOT', range:'D10:E500', headers:0 },
-  // Sheet 3: PIVOT col J (tanggal) & K (omzet harian) mulai baris 10
+  // Sheet 3: PIVOT col J (tanggal) & K (omzet harian) mulai baris 10 — dipakai Tren Harian, TIDAK diubah
   pivot_omzet: { id:'1Ag2wEb_jP4R2RcN-fI-Em7LiDcIZwSf6PweJuXic9QM', sheet:'PIVOT', range:'J10:K500', headers:0 },
-  // Sheet 4: DATABASE TDK — leads pipeline from row 7
+  // Sheet 4: DATABASE TDK — leads pipeline from row 7 — dipakai Tren Harian (Distribusi Leads), TIDAK diubah
   leads: { id:'1k8gxOxuiwghZW6ldkXrrvHpOD7zOau9zgWfypJL0DNs', sheet:'Database TDK', range:'A7:K', headers:0 },
   // Sheet 2: RINGKASAN HARIAN — daily summary
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v2';
+var CACHE_KEY = 'exec_dash_v3';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -307,8 +281,6 @@ var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agust
 function lsGet(k,def){try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):def;}catch(e){return def;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
-function getAdInputs(ym){return lsGet('exec_ad_'+ym,{adspend:0,target_custom:0});}
-function setAdInputs(ym,obj){lsSet('exec_ad_'+ym,obj);}
 
 // ── UTILS ─────────────────────────────────────────────
 var fmt  = function(n){ return 'Rp '+Math.round(n||0).toLocaleString('id-ID'); };
@@ -372,48 +344,38 @@ function parseNumStr(s){
   return parseFloat(clean)||0;
 }
 
-function parseSumber(table){
-  // Row = month (Jan-Des), cols: A=month, B=budget_plan, C=actual_spend, D=revenue, E=profit
-  var p=parseTable(table);
-  var result=[];
-  p.rows.forEach(function(r,i){
-    var cols=p.hdrs;
-    var vals=p.rows[i];
-    var row0=vals[cols[0]]||vals['A']||vals['']||'';
-    var monthName=String(row0).trim();
-    if(!monthName||MONTHS_ID.indexOf(monthName)<0)return;
-    var idx=MONTHS_ID.indexOf(monthName);
-    var year=new Date().getFullYear();
-    var ym=year+'-'+String(idx+1).padStart(2,'0');
-    result.push({
-      ym:ym, month:monthName,
-      budget_plan: parseNumStr(vals[cols[1]]||vals['B']||0),
-      actual_spend: parseNumStr(vals[cols[2]]||vals['C']||0),
-      revenue: parseNumStr(vals[cols[3]]||vals['D']||0),
-      profit: parseNumStr(vals[cols[4]]||vals['E']||0),
-    });
-  });
-  return result;
-}
-
-function parseDashboard(table){
-  // B3=Hari Kerja, C3=value, B4=OMSET REAL, C4=value, B5=DEAL SALES, C5=val, B6=FORECAST, C6=val
+function parseReportNow(table){
+  // A=label (HARI KERJA/OMSET REAL/DEAL SALES/FORECAST), B=Total bulan berjalan
   var p=parseTable(table);
   var map={};
   p.rows.forEach(function(r){
-    var cols=p.hdrs;
-    var label=String(r[cols[0]]||r['B']||'').trim().toUpperCase();
-    var val=parseNumStr(r[cols[1]]||r['C']||0);
-    var avg=parseNumStr(r[cols[2]]||r['D']||0);
-    if(label)map[label]={val:val,avg:avg};
+    var label=String(r['A']||'').trim().toUpperCase();
+    var val=parseNumStr(r['B']||0);
+    if(label)map[label]=val;
   });
   return{
-    hari_kerja: map['HARI KERJA']?map['HARI KERJA'].val:0,
-    omset_real: (map['OMSET REAL']||map['OMZET REAL'])?( map['OMSET REAL']||map['OMZET REAL']).val:0,
-    deal_sales: map['DEAL SALES']?map['DEAL SALES'].val:0,
-    forecast:   map['FORECAST']?map['FORECAST'].val:0,
-    omset_avg:  (map['OMSET REAL']||map['OMZET REAL'])?(map['OMSET REAL']||map['OMZET REAL']).avg:0,
+    hari_kerja: map['HARI KERJA']||0,
+    omset_real: (map['OMSET REAL']||map['OMZET REAL'])||0,
+    deal_sales: map['DEAL SALES']||0,
+    forecast:   map['FORECAST']||0,
   };
+}
+
+function parseIklan(table){
+  // A=Tahun, B=Bulan (nama Indonesia), F=Biaya Iklan. Range mulai baris 2
+  // (header dilewatin lewat range A2:F400, bukan lewat opsi headers).
+  var p=parseTable(table);
+  var result=[];
+  p.rows.forEach(function(r){
+    var tahun=parseInt(r['A'])||0;
+    var bulan=String(r['B']||'').trim();
+    if(!tahun||!bulan)return;
+    var idx=MONTHS_ID.indexOf(bulan);
+    if(idx<0)return;
+    var ym=tahun+'-'+String(idx+1).padStart(2,'0');
+    result.push({ym:ym, biaya_iklan: parseNumStr(r['F']||0)});
+  });
+  return result;
 }
 
 function parsePivotTx(table){
@@ -479,11 +441,11 @@ function parseLeads(table){
 
 // ── STATE ────────────────────────────────────────────
 var D={
-  sumber:[],       // monthly TOKO data
-  dashboard:{},    // current month KPIs
+  report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
+  iklan:[],        // biaya iklan per bulan (sheet OMZET, kolom F)
   pivot_tx:[],     // daily transaction count (col D=date, E=count)
-  pivot_omzet:[],  // daily omzet (col J=date, K=omzet)
-  leads:{},        // leads analysis
+  pivot_omzet:[],  // daily omzet (col J=date, K=omzet) — dipakai Tren Harian
+  leads:{},        // leads analysis — dipakai Tren Harian (Distribusi Leads)
   harian:[],       // ringkasan harian
   loaded:false,
   error:null,
@@ -502,15 +464,15 @@ function loadData(force){
     if(cached&&Date.now()-cached.ts<CACHE_TTL){
       D=cached.data;D.loaded=true;
       document.getElementById('btn-refresh').classList.remove('spin');
-      buildMonthSelector();renderAll();
+      renderAll();
       showBanner('ok','Data dari cache · Terakhir: '+new Date(cached.ts).toLocaleString('id-ID'));
       return;
     }
   }
 
   Promise.allSettled([
-    gviz(SHEETS.sumber).then(parseSumber).then(function(v){D.sumber=v;}),
-    gviz(SHEETS.dashboard).then(parseDashboard).then(function(v){D.dashboard=v;}),
+    gviz(SHEETS.report_now).then(parseReportNow).then(function(v){D.report_now=v;}),
+    gviz(SHEETS.iklan).then(parseIklan).then(function(v){D.iklan=v;}),
     gviz(SHEETS.pivot_tx).then(parsePivotTx).then(function(v){D.pivot_tx=v;}),
     gviz(SHEETS.pivot_omzet).then(parsePivotOmzet).then(function(v){D.pivot_omzet=v;}),
     gviz(SHEETS.leads).then(parseLeads).then(function(v){D.leads=v;}),
@@ -523,7 +485,7 @@ function loadData(force){
     document.getElementById('update-badge').textContent='Update: '+D.lastUpdate.toLocaleTimeString('id-ID');
     if(errors.length){showBanner('warn','⚠️ '+errors.length+' sumber data gagal dimuat. Menampilkan data yang tersedia.');}
     else{showBanner('ok','✅ Semua data berhasil dimuat');}
-    buildMonthSelector();renderAll();
+    renderAll();
   });
 }
 
@@ -550,37 +512,30 @@ function kpiCard(ico,lbl,val,sub,delta,prog,colorClass){
   return h;
 }
 
-// ── MONTH SELECTOR ────────────────────────────────────
-function buildMonthSelector(){
-  var sel=document.getElementById('sel-month');
-  var current=nowYM();
-  // Collect months from sumber data + current
-  var months=[current];
-  D.sumber.forEach(function(r){if(r.ym&&r.revenue>0&&months.indexOf(r.ym)<0)months.push(r.ym);});
-  months.sort().reverse();
-  sel.innerHTML=months.map(function(ym){
-    return'<option value="'+ym+'"'+(ym===SEL_MONTH?' selected':'')+'>'+ymLabel(ym)+'</option>';
-  }).join('');
-}
-
 // ── GET DATA FOR SELECTED MONTH ───────────────────────
 function getMonthData(ym){
   var isCurrentMonth=ym===nowYM();
-  var hist=D.sumber.find(function(r){return r.ym===ym;})||{};
-  var dash=isCurrentMonth?D.dashboard:{};
-  var inp=getAdInputs(ym);
+  // Target Omzet, Real Omzet, Deal Sales, Hari Kerja SEKARANG dari REPORT
+  // V.2 — sheet ini cuma nyediain snapshot BULAN BERJALAN, gak ada data
+  // historis bulan lain lagi (sesuai keputusan: real bulan ini saja).
+  var rn = isCurrentMonth ? (D.report_now||{}) : {};
+  // Biaya Iklan dari sheet OMZET (kolom F), dicocokin by Tahun+Bulan — sheet
+  // ini PUNYA histori per tahun/bulan, jadi tetap bisa kematch walau ym
+  // bukan bulan berjalan (walau di app ini praktiknya selalu current month).
+  var iklanRow = (D.iklan||[]).find(function(r){return r.ym===ym;}) || {};
 
-  var target    = inp.target_custom>0 ? inp.target_custom : (isCurrentMonth&&dash.forecast>0?dash.forecast:(hist.revenue>0?hist.revenue*1.1:0));
-  var omset_real= isCurrentMonth?dash.omset_real||0:hist.revenue||0;
-  var deal_sales= isCurrentMonth?dash.deal_sales||0:0;
-  var hari_kerja= isCurrentMonth?dash.hari_kerja||0:0;
-  var actual_spend = inp.adspend>0?inp.adspend:(hist.actual_spend||0);
-  var forecast  = isCurrentMonth?dash.forecast||0:hist.revenue||0;
+  var target     = rn.forecast || 0;
+  var omset_real = rn.omset_real || 0;
+  var deal_sales = rn.deal_sales || 0;
+  var hari_kerja = rn.hari_kerja || 0;
+  var actual_spend = iklanRow.biaya_iklan || 0;
+  var forecast   = rn.forecast || 0;
 
-  // Leads for selected month
+  // Leads for selected month — TIDAK DIUBAH, masih dipakai Tren Harian
+  // (Distribusi Leads) & Cost per Lead & Diagnosa Otomatis.
   var leadM=D.leads&&D.leads.byMonth?D.leads.byMonth[ym]||{total:0,beli:0,tanya:0,ttb:0,follow_up:0,arsip:0}:{total:0,beli:0,tanya:0,ttb:0,follow_up:0,arsip:0};
 
-  // Filter PIVOT data for selected month
+  // Filter PIVOT data for selected month — TIDAK DIUBAH
   var filterByYM=function(arr){
     return arr.filter(function(r){
       if(!r.date)return false;
@@ -589,30 +544,21 @@ function getMonthData(ym){
       return(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))===ym;
     });
   };
-  // Col D/E: daily transaction count (Jumlah Nota per hari)
   var pivot_tx_month=filterByYM(D.pivot_tx||[]);
-  // Col J/K: daily omzet
   var pivot_month=filterByYM(D.pivot_omzet||[]);
 
-  // Jumlah Transaksi = SUM col E (jumlah nota per hari)
   var transaksi=pivot_tx_month.reduce(function(s,r){return s+(r.count||0);},0);
-  // Omzet total dari pivot (cross-check)
   var omzet_pivot_total=pivot_month.reduce(function(s,r){return s+(r.val||0);},0);
-
   var aov = omset_real>0&&transaksi>0 ? Math.round(omset_real/transaksi) : 0;
 
-  // ── TOTAL LEADS MASUK (formula benar) ───────────────────────────────────
-  // TDK hanya menangkap leads WA. Pembeli offline tidak masuk TDK.
-  // Formula: Total Leads = (Transaksi - Beli TDK) + Total Leads TDK
-  //   → (Transaksi - Beli TDK) = estimasi pembeli offline / non-WA
-  //   → Total Leads TDK = semua leads yang masuk via WA
+  // ── TOTAL LEADS MASUK — TIDAK DIUBAH (masih dipakai Diagnosa Otomatis) ──
   var beli_tdk = leadM.beli || 0;
-  var offline_tx = Math.max(0, transaksi - beli_tdk); // transaksi yang tidak dari WA/TDK
+  var offline_tx = Math.max(0, transaksi - beli_tdk);
   var total_leads_masuk = leadM.total + offline_tx;
 
-  var closing_rate = pct(transaksi, total_leads_masuk); // Overall (untuk diagnose)
-  var cr_online = pct(leadM.beli, leadM.total);   // Online: Beli TDK / Total Leads TDK
-  var cr_offline = offline_tx > 0 ? 100 : 0;      // Offline: selalu 100% (walk-in = langsung beli)
+  var closing_rate = pct(transaksi, total_leads_masuk);
+  var cr_online = pct(leadM.beli, leadM.total);
+  var cr_offline = offline_tx > 0 ? 100 : 0;
   var cpl = actual_spend>0&&total_leads_masuk>0 ? Math.round(actual_spend/total_leads_masuk) : 0;
   var achievement_pct = pct(omset_real,target);
   var gap_omzet = target-omset_real;
@@ -625,7 +571,7 @@ function getMonthData(ym){
     total_leads_masuk:total_leads_masuk,offline_tx:offline_tx,
     closing_rate:closing_rate,cr_online:cr_online,cr_offline:cr_offline,
     cpl:cpl,roas:roas,mer:mer,target_harian:target_harian,
-    leads:leadM,pivot_tx_month:pivot_tx_month,pivot_omzet_month:pivot_month,isCurrentMonth:isCurrentMonth,hist:hist};
+    leads:leadM,pivot_tx_month:pivot_tx_month,pivot_omzet_month:pivot_month,isCurrentMonth:isCurrentMonth};
 }
 
 // ── SECTION NOTES ────────────────────────────────────
@@ -703,7 +649,6 @@ function renderSectionNotes(d){
   }
 
   document.getElementById('note-omzet').innerHTML=n1;
-  document.getElementById('note-transaksi').innerHTML=n2;
   document.getElementById('note-marketing').innerHTML=n3;
   document.getElementById('note-chart').innerHTML=n4;
 
@@ -751,8 +696,9 @@ function renderSectionNotes(d){
 // ── RENDER ALL ────────────────────────────────────────
 function renderAll(){
   var data=getMonthData(SEL_MONTH);
+  var lbl=document.getElementById('month-now-lbl');
+  if(lbl)lbl.textContent=ymLabel(SEL_MONTH);
   renderKPIs(data);
-  renderAdPanel(data);
   renderSectionNotes(data);
   renderCharts(data);
   renderDiagnose(data);
@@ -763,8 +709,9 @@ function renderAll(){
 function renderKPIs(d){
   var ap=d.achievement_pct;
   var acls=ap>=100?'good':ap>=80?'warn':'bad';
+  var rCls=d.roas>=8?'good':d.roas>=5?'warn':'bad';
 
-  // ROW 1: Omzet
+  // ROW 1: Target vs Realisasi Omzet — sekarang termasuk Biaya Iklan & ROAS
   document.getElementById('kpi-omzet').innerHTML=
     kpiCard('🎯','Target Omzet',fmtS(d.target),'Bulan '+ymLabel(d.ym),null,null,'hero')+
     kpiCard('💰','Real Omzet',fmtS(d.omset_real),'Deal Sales: '+fmtS(d.deal_sales),
@@ -772,51 +719,16 @@ function renderKPIs(d){
     kpiCard('📊','Pencapaian',ap+'%',fmtS(d.omset_real)+' / '+fmtS(d.target),null,ap,acls)+
     kpiCard('📉','Gap Omzet',fmtS(Math.abs(d.gap_omzet)),
       d.gap_omzet<=0?'✅ Sudah melampaui target':'Sisa yang harus dicapai',
-      d.gap_omzet<=0?'▲ +'+fmtS(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad');
-
-  // ROW 2: Transaksi & Leads
-  var crCls=d.closing_rate>=15?'good':d.closing_rate>=8?'warn':'bad';
-  document.getElementById('kpi-transaksi').innerHTML=
-    kpiCard('🧾','Jumlah Transaksi',d.transaksi?d.transaksi.toLocaleString('id-ID'):'—',
-      'Total Nota · '+(d.pivot_tx_month&&d.pivot_tx_month.length?d.pivot_tx_month.length+' hari data':'data PIVOT belum tersedia'),null,null,'')+
-    kpiCard('📦','Average Order Value',d.aov?fmtS(d.aov):'—',d.transaksi?'dari '+d.transaksi+' transaksi':'belum ada data',null,null,'')+
-    kpiCard('📥','Total Leads Masuk',d.total_leads_masuk.toLocaleString('id-ID'),
-      'WA/TDK: '+d.leads.total+' · Offline: '+d.offline_tx,null,null,'')+
-    '<div class="kpi-card '+crCls+'">'
-      +'<span class="kpi-ico">🎯</span>'
-      +'<span class="kpi-lbl">Closing Rate (Kumulatif)</span>'
-      +'<span class="kpi-val">'+d.closing_rate+'%</span>'
-      +'<span class="kpi-sub">Online + Offline · Tx ÷ Total Leads</span>'
-      +'<div style="border-top:1px solid var(--bdr);margin-top:8px;padding-top:8px;font-size:10px;line-height:1.8">'
-        +'<div style="display:flex;justify-content:space-between">'
-          +'<span style="color:var(--mut)">🌐 Online (WA/TDK)</span>'
-          +'<span style="font-weight:700;color:'+(d.cr_online>=10?'var(--grn)':'var(--red)')+'">'+d.cr_online+'%</span>'
-        +'</div>'
-        +'<div style="display:flex;justify-content:space-between">'
-          +'<span style="color:var(--mut)">🏪 Offline (Walk-in)</span>'
-          +'<span style="font-weight:700;color:var(--grn)">'+(d.cr_offline?'100%':'—')+'</span>'
-        +'</div>'
-        +'<div style="color:var(--mut);margin-top:4px;font-size:9.5px;line-height:1.5">Offline selalu 100% karena walk-in = langsung beli. CR online diukur dari leads WA yang masuk TDK.</div>'
-      +'</div>'
-    +'</div>';
+      d.gap_omzet<=0?'▲ +'+fmtS(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad')+
+    kpiCard('💸','Biaya Iklan',d.actual_spend?fmtS(d.actual_spend):'—','Bulan '+ymLabel(d.ym),null,null,'')+
+    kpiCard('📡','ROAS',d.roas?d.roas+'x':'—','Real Omzet ÷ Biaya Iklan',
+      d.roas>0?(d.roas>=8?'✅ Excellent':d.roas>=5?'⚠️ Average':'❌ Poor'):null,null,rCls);
 }
 
-function renderAdPanel(d){
-  var el=document.getElementById('ad-result');
-  if(!d.actual_spend){el.innerHTML='<div style="font-size:11px;color:var(--mut)">Masukkan biaya iklan untuk melihat ROAS dan Cost per Lead.</div>';return;}
-  el.innerHTML='<div class="ad-metric"><span style="font-size:10px;color:var(--mut)">ROAS/MER</span><strong style="color:'+(d.roas>=8?'var(--grn)':d.roas>=5?'#92400E':'var(--red)')+'">'+d.roas+'x</strong></div>'
-    +'<div class="ad-metric"><span style="font-size:10px;color:var(--mut)">Cost per Lead</span><strong>'+fmt(d.cpl)+'</strong></div>'
-    +'<div class="ad-metric"><span style="font-size:10px;color:var(--mut)">Total Ad Spend</span><strong>'+fmt(d.actual_spend)+'</strong></div>'
-    +'<div class="ad-metric"><span style="font-size:10px;color:var(--mut)">Revenue/Spend</span><strong>'+d.roas+'x</strong></div>';
-}
-
-// ── MARKETING KPI ROW ─────────────────────────────────
+// ── MARKETING KPI ROW (sisa: Cost per Lead, Target Harian, Real Harian) ──
 function renderMarketingKPIs(d){
-  var rCls=d.roas>=8?'good':d.roas>=5?'warn':'bad';
   document.getElementById('kpi-marketing').innerHTML=
-    kpiCard('💳','Cost per Lead',d.cpl?fmt(d.cpl):'—',d.actual_spend?'dari Rp '+d.actual_spend.toLocaleString('id-ID')+' spend':'Isi biaya iklan dulu',null,null,'')+
-    kpiCard('📡','ROAS / MER',d.roas?d.roas+'x':'—','Revenue ÷ Ad Spend',
-      d.roas>0?(d.roas>=8?'✅ Excellent':d.roas>=5?'⚠️ Average':'❌ Poor'):null,null,rCls)+
+    kpiCard('💳','Cost per Lead',d.cpl?fmt(d.cpl):'—',d.actual_spend?'dari Rp '+d.actual_spend.toLocaleString('id-ID')+' spend':'Biaya iklan belum ada',null,null,'')+
     kpiCard('📈','Target Harian',d.target_harian?fmtS(d.target_harian):'—','Per hari kerja',null,null,'')+
     kpiCard('🔄','Real Harian Avg',d.hari_kerja>0?fmtS(Math.round(d.omset_real/d.hari_kerja)):'—',
       d.hari_kerja>0?'vs target '+fmtS(d.target_harian):'',null,
@@ -1043,50 +955,6 @@ function getPrevMonth(ym){
   return y+'-'+String(m).padStart(2,'0');
 }
 
-// ── HISTORICAL TABLE ──────────────────────────────────
-function renderHistTable(){
-  var thead=document.getElementById('hist-head');
-  var tbody=document.getElementById('hist-body');
-  var cols=['Bulan','Budget Iklan','Actual Spend','Revenue Aktual','ROAS (est)','Achievement'];
-  thead.innerHTML=cols.map(function(c){return'<th>'+c+'</th>';}).join('');
-  if(!D.sumber.length){tbody.innerHTML='<tr><td colspan="6" class="empty-box">Data historis belum tersedia</td></tr>';return;}
-  var rows=D.sumber.slice().sort(function(a,b){return b.ym.localeCompare(a.ym);});
-  tbody.innerHTML=rows.map(function(r){
-    var inp=getAdInputs(r.ym);
-    var spend=inp.adspend>0?inp.adspend:r.actual_spend;
-    var roas_est=spend>0&&r.revenue>0?+(r.revenue/spend).toFixed(1):0;
-    var target_est=inp.target_custom>0?inp.target_custom:r.revenue*1.05;
-    var ach=pct(r.revenue,target_est);
-    var ach_cls=ach>=100?'ok':ach>=80?'warn':'bad';
-    return'<tr>'
-      +'<td><strong>'+esc(r.month)+'</strong>'+(r.ym===nowYM()?' <span class="pill ok">Berjalan</span>':'')+'</td>'
-      +'<td>'+fmt(r.budget_plan)+'</td>'
-      +'<td>'+(spend?fmt(spend):'—')+'</td>'
-      +'<td><strong>'+fmt(r.revenue)+'</strong></td>'
-      +'<td>'+(roas_est?'<span style="font-weight:700;color:'+(roas_est>=8?'var(--grn)':roas_est>=5?'#92400E':'var(--red)')+'">'+roas_est+'x</span>':'—')+'</td>'
-      +'<td><span class="pill '+ach_cls+'">'+ach+'%</span></td>'
-      +'</tr>';
-  }).join('');
-}
-
-// ── AD SPEND INPUTS ───────────────────────────────────
-function loadAdInputsUI(ym){
-  var inp=getAdInputs(ym);
-  var fI=function(n){return n>0?Math.round(n).toLocaleString('id-ID'):'';};
-  document.getElementById('inp-adspend').value=fI(inp.adspend);
-  document.getElementById('inp-target').value=fI(inp.target_custom);
-}
-
-function saveAdInputs(){
-  var parseI=function(id){return +document.getElementById(id).value.replace(/\./g,'').replace(/[^0-9]/g,'')||0;};
-  setAdInputs(SEL_MONTH,{adspend:parseI('inp-adspend'),target_custom:parseI('inp-target')});
-  renderAll();
-  var sb=document.getElementById('status-banner');
-  sb.className='status-banner ok';sb.style.display='flex';
-  sb.innerHTML='✅ <span>Biaya iklan tersimpan untuk '+ymLabel(SEL_MONTH)+'</span>';
-  setTimeout(function(){sb.style.display='none';},3000);
-}
-
 function formatInputOnBlur(id){
   var el=document.getElementById(id);
   var raw=+el.value.replace(/\./g,'').replace(/[^0-9]/g,'')||0;
@@ -1146,7 +1014,7 @@ function exportData(){
   // ── SECTION 4: MARKETING COST ─────────────────────
   rows+=csvRow(['MARKETING & ROAS','','']);
   rows+=csvRow(['Metrik','Nilai','Keterangan']);
-  rows+=csvRow(['Biaya Iklan',d.actual_spend,d.actual_spend?'Input manual':'Belum diisi']);
+  rows+=csvRow(['Biaya Iklan',d.actual_spend,d.actual_spend?'Dari sheet OMZET':'Belum ada data']);
   rows+=csvRow(['ROAS / MER',d.roas?d.roas+'x':'—','Omzet Real / Biaya Iklan']);
   rows+=csvRow(['Cost per Lead',d.cpl?d.cpl:'—','Biaya Iklan / Total Leads']);
   rows+=csvRow(['','','']);
@@ -1175,19 +1043,6 @@ function exportData(){
     rows+=csvRow(['','','']);
   }
 
-  // ── SECTION 7: REKAP BULANAN (YEAR TO DATE) ───────
-  if(D.sumber.length){
-    rows+=csvRow(['REKAP BULANAN — YEAR TO DATE','','','','']);
-    rows+=csvRow(['Bulan','Budget Iklan','Actual Spend','Revenue Aktual','ROAS (est)','Achievement']);
-    D.sumber.slice().sort(function(a,b){return a.ym.localeCompare(b.ym);}).forEach(function(r){
-      var inp=getAdInputs(r.ym);
-      var spend=inp.adspend>0?inp.adspend:r.actual_spend;
-      var roas_est=spend>0&&r.revenue>0?+(r.revenue/spend).toFixed(1):0;
-      var ach=pct(r.revenue,r.revenue*1.05);
-      rows+=csvRow([r.month,r.budget_plan,spend||'',r.revenue,roas_est||'',ach+'%']);
-    });
-  }
-
   // ── DOWNLOAD ──────────────────────────────────────
   var filename='exec-dashboard-'+SEL_MONTH+'.csv';
   var blob=new Blob(['\uFEFF'+rows],{type:'text/csv;charset=utf-8'});
@@ -1199,7 +1054,6 @@ function exportData(){
 
 // ── EVENTS ────────────────────────────────────────────
 document.getElementById('btn-refresh').addEventListener('click',function(){lsSet(CACHE_KEY,null);loadData(true);});
-document.getElementById('sel-month').addEventListener('change',function(){SEL_MONTH=this.value;loadAdInputsUI(SEL_MONTH);renderAll();});
 document.getElementById('btn-theme').addEventListener('click',function(){
   var isDark=document.body.classList.toggle('dark');
   this.textContent=isDark?'☀️':'🌙';
@@ -1207,11 +1061,6 @@ document.getElementById('btn-theme').addEventListener('click',function(){
   destroyChart('chart-daily');destroyChart('chart-leads');destroyChart('chart-leads-2');
   CHART_DAILY=null;CHART_LEADS=null;CHART_LEADS_2=null;
   renderAll();
-});
-
-['inp-adspend','inp-target'].forEach(function(id){
-  document.getElementById(id).addEventListener('focus',function(){this.value=this.value.replace(/\./g,'');});
-  document.getElementById(id).addEventListener('blur',function(){formatInputOnBlur(id);});
 });
 
 // ── PWA ───────────────────────────────────────────────

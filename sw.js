@@ -22,6 +22,14 @@ self.addEventListener('activate', function (e) {
             .map(function (k) { return caches.delete(k); })
       );
     }).then(function () { return self.clients.claim(); })
+      .then(function () {
+        // Begitu versi baru ini aktif, paksa semua halaman yang lagi
+        // kebuka buat reload sendiri — jadi cukup refresh biasa, gak
+        // perlu tutup app total lagi buat kepake versi terbaru.
+        return self.clients.matchAll({ type: 'window' }).then(function (clientsList) {
+          clientsList.forEach(function (client) { client.navigate(client.url); });
+        });
+      })
   );
 });
 

@@ -381,10 +381,17 @@ function parseDealKasir(table){
   // header-nya sendiri (baris 86 isinya teks "TANGGAL/DEAL/KASIR")
   // biar persis sama permintaan user — baris itu otomatis kelewat di
   // sini karena kolom Tanggal-nya bukan tanggal valid.
+  //
+  // PENTING: akses kolom pakai p.hdrs[0]/[1]/[2] (POSISI), BUKAN
+  // hardcode huruf 'A'/'B'/'C' — soalnya range ini gak mulai dari
+  // baris 1, dan gviz kadang ngasih id kolom yang beda dari huruf
+  // aslinya di kondisi itu. Ini pola yang SAMA kayak parsePivotOmzet/
+  // parsePivotTx yang udah kebukti jalan buat kasus serupa.
   var p=parseTable(table);
+  var cols=p.hdrs;
   var result=[];
   p.rows.forEach(function(r){
-    var dateVal=r['A'];
+    var dateVal=(cols[0]!==undefined&&r[cols[0]]!==undefined&&r[cols[0]]!=='')?r[cols[0]]:r['A'];
     var dv=null;
     if(dateVal instanceof Date) dv=dateVal;
     else if(dateVal){
@@ -394,11 +401,14 @@ function parseDealKasir(table){
       else{ var d2=new Date(s); if(!isNaN(d2)) dv=d2; }
     }
     if(!dv) return;
-    var deal=parseNumStr(r['B']||0);
-    var kasir=parseNumStr(r['C']||0);
+    var bVal=(cols[1]!==undefined&&r[cols[1]]!==undefined&&r[cols[1]]!=='')?r[cols[1]]:r['B'];
+    var cVal=(cols[2]!==undefined&&r[cols[2]]!==undefined&&r[cols[2]]!=='')?r[cols[2]]:r['C'];
+    var deal=parseNumStr(bVal||0);
+    var kasir=parseNumStr(cVal||0);
     if(deal===0&&kasir===0) return;
     result.push({date:dv,deal:deal,kasir:kasir});
   });
+  console.log('[Deal vs Kasir] kolom terdeteksi:',cols,'| baris mentah pertama:',p.rows[0],'| baris berhasil diparse:',result.length);
   return result.sort(function(a,b){return a.date-b.date;});
 }
 

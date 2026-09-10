@@ -313,7 +313,7 @@ var SHEETS = {
   report_now: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT V.2', range:'A1:E6', headers:0 },
   // Sheet BARU: REPORT V.2 (tab sama persis kayak report_now, baris beda) —
   // tabel harian Deal vs Kasir, mulai baris 86
-  deal_kasir: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT V.2', tq:'select A,B,C', headers:0 },
+  deal_kasir: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:602747520, sheet:'REPORT V.2', range:'A86:C120', headers:0 },
   // Sheet BARU: OMZET tab — Biaya Iklan per bulan (A=Tahun, B=Bulan, F=Iklan)
   iklan: { id:'1Pv2b04WvHOCtT5Dcd4YvXyn8G3MP5VPbPXEmN5nC6Vc', sheet:'OMZET', range:'A2:F400', headers:0 },
   // Sheet 3: PIVOT col D (tanggal) & E (jumlah transaksi/nota harian) mulai baris 10
@@ -360,7 +360,7 @@ function gviz(cfg){
     sc.onerror=function(){if(done)return;done=true;cleanup();reject(new Error('Script error: '+cfg.sheet));};
     function cleanup(){clearTimeout(t);try{delete window[cb];}catch(e){window[cb]=undefined;}if(sc.parentNode)sc.parentNode.removeChild(sc);}
     var url='https://docs.google.com/spreadsheets/d/'+cfg.id+'/gviz/tq?tqx=out:json;responseHandler:'+cb
-      +'&sheet='+encodeURIComponent(cfg.sheet)
+      +(cfg.gid!==undefined?'&gid='+cfg.gid:'&sheet='+encodeURIComponent(cfg.sheet))
       +(cfg.tq?'&tq='+encodeURIComponent(cfg.tq):(cfg.range?'&range='+encodeURIComponent(cfg.range):''))
       +'&headers='+(cfg.headers||0)
       +'&cb='+Date.now();

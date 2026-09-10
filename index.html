@@ -132,6 +132,18 @@ body.dark .kpi-card.hero{background:#0D0E12}
 .chart-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .chart-title{font-size:12px;font-weight:700;color:var(--txt)}
 .chart-badge{font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--yl-l);color:var(--yl-d)}
+.dk-stat{display:flex;flex-direction:column}
+.dk-stat-lbl{font-size:10px;color:var(--mut);font-weight:600;margin-bottom:3px}
+.dk-stat-val{font-size:20px;font-weight:800;color:var(--txt)}
+.gap-alert{display:flex;gap:10px;padding:12px 14px;border-radius:10px;background:var(--red-l);border:1px solid #FECACA}
+.gap-alert.ok{background:var(--grn-l);border-color:#BBF7D0}
+.gap-alert-ico{font-size:18px;flex-shrink:0}
+.gap-alert-title{font-size:12px;font-weight:800;color:var(--txt)}
+.gap-alert-sub{font-size:10.5px;color:var(--mut);margin-top:2px;line-height:1.6}
+.checklist-ref{background:var(--bg);border-radius:10px;padding:12px 14px;border:1px solid var(--bdr)}
+.checklist-ref-title{font-size:10.5px;font-weight:800;color:var(--txt);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.checklist-ref-item{display:flex;gap:8px;padding:5px 0;font-size:11px;color:var(--txt2);line-height:1.5}
+.checklist-ref-num{width:18px;height:18px;border-radius:50%;background:var(--yl-l);color:var(--yl-d);font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 canvas{max-height:260px;width:100%!important}
 
 /* ── DIAGNOSE PANEL ── */
@@ -274,6 +286,18 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     </div>
   </div>
 
+  <div class="chart-box" style="margin-top:14px">
+    <div class="chart-hd">
+      <div class="chart-title">Deal vs Kasir Harian</div>
+      <span class="chart-badge" id="chart-badge-dealkasir">—</span>
+    </div>
+    <div id="dealkasir-summary" style="display:flex;gap:28px;margin-bottom:16px;flex-wrap:wrap"></div>
+    <div id="dealkasir-alert" style="margin-bottom:14px"></div>
+    <canvas id="chart-dealkasir" style="min-height:240px"></canvas>
+    <div id="dealkasir-empty" style="display:none;text-align:center;padding:30px 20px;color:var(--mut);font-size:12px">Belum ada data Deal/Kasir buat bulan ini.</div>
+    <div id="dealkasir-checklist" style="margin-top:16px"></div>
+  </div>
+
   <!-- AUTOMATED DIAGNOSE -->
   <span class="slbl">🔍 Diagnosa Otomatis — Ringkasan Keseluruhan</span>
   <div class="diag-grid" id="diagnose-panel">
@@ -287,6 +311,9 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
 var SHEETS = {
   // Sheet BARU: REPORT V.2 — snapshot Omzet Real & Forecast (Target) BULAN BERJALAN saja
   report_now: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT V.2', range:'A1:E6', headers:0 },
+  // Sheet BARU: REPORT V.2 (tab sama persis kayak report_now, baris beda) —
+  // tabel harian Deal vs Kasir, mulai baris 86
+  deal_kasir: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT V.2', range:'A86:C120', headers:0 },
   // Sheet BARU: OMZET tab — Biaya Iklan per bulan (A=Tahun, B=Bulan, F=Iklan)
   iklan: { id:'1Pv2b04WvHOCtT5Dcd4YvXyn8G3MP5VPbPXEmN5nC6Vc', sheet:'OMZET', range:'A2:F400', headers:0 },
   // Sheet 3: PIVOT col D (tanggal) & E (jumlah transaksi/nota harian) mulai baris 10
@@ -311,6 +338,7 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
 // ── UTILS ─────────────────────────────────────────────
 var fmt  = function(n){ return 'Rp '+Math.round(n||0).toLocaleString('id-ID'); };
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 var fmtS = function(n){ n=Math.round(n||0); if(n>=1e9)return'Rp '+(n/1e9).toFixed(1)+' M'; if(n>=1e6)return'Rp '+(n/1e6).toFixed(1)+' jt'; if(n>=1e3)return'Rp '+(n/1e3).toFixed(0)+' rb'; return'Rp '+n; };
 var pct  = function(a,b){ return b>0?+(a/b*100).toFixed(1):0; };
 var esc  = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
@@ -346,6 +374,32 @@ function parseGvizDate(v){
   var m=String(v).match(/Date\((\d+),(\d+),(\d+)\)/);
   if(m)return new Date(+m[1],+m[2],+m[3]);
   var d=new Date(v);return isNaN(d)?null:d;
+}
+
+function parseDealKasir(table){
+  // A=Tanggal, B=Deal, C=Kasir. Range A86:C120 SENGAJA nyakup baris
+  // header-nya sendiri (baris 86 isinya teks "TANGGAL/DEAL/KASIR")
+  // biar persis sama permintaan user — baris itu otomatis kelewat di
+  // sini karena kolom Tanggal-nya bukan tanggal valid.
+  var p=parseTable(table);
+  var result=[];
+  p.rows.forEach(function(r){
+    var dateVal=r['A'];
+    var dv=null;
+    if(dateVal instanceof Date) dv=dateVal;
+    else if(dateVal){
+      var s=String(dateVal).trim();
+      var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(m) dv=new Date(+m[3],+m[2]-1,+m[1]);
+      else{ var d2=new Date(s); if(!isNaN(d2)) dv=d2; }
+    }
+    if(!dv) return;
+    var deal=parseNumStr(r['B']||0);
+    var kasir=parseNumStr(r['C']||0);
+    if(deal===0&&kasir===0) return;
+    result.push({date:dv,deal:deal,kasir:kasir});
+  });
+  return result.sort(function(a,b){return a.date-b.date;});
 }
 
 function parseTable(table){
@@ -474,6 +528,7 @@ function parseLeads(table){
 // ── STATE ────────────────────────────────────────────
 var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
+  deal_kasir:[],   // tabel harian Deal vs Kasir (REPORT V.2 A86:C120) — dipakai Tren Harian
   iklan:[],        // biaya iklan per bulan (sheet OMZET, kolom F)
   pivot_tx:[],     // daily transaction count (col D=date, E=count)
   pivot_omzet:[],  // daily omzet (col J=date, K=omzet) — dipakai Tren Harian
@@ -504,6 +559,7 @@ function loadData(force){
 
   Promise.allSettled([
     gviz(SHEETS.report_now).then(parseReportNow).then(function(v){D.report_now=v;}),
+    gviz(SHEETS.deal_kasir).then(parseDealKasir).then(function(v){D.deal_kasir=v;}).catch(function(){D.deal_kasir=[];}),
     gviz(SHEETS.iklan).then(parseIklan).then(function(v){D.iklan=v;}),
     gviz(SHEETS.pivot_tx).then(parsePivotTx).then(function(v){D.pivot_tx=v;}),
     gviz(SHEETS.pivot_omzet).then(parsePivotOmzet).then(function(v){D.pivot_omzet=v;}),
@@ -627,15 +683,15 @@ function renderSectionNotes(d){
   // ── 1. TARGET VS REALISASI ──────────────────────────
   var n1='';
   if(ap>=100){
-    n1=secNote('ok','🏆','Target sudah terlampaui '+ap+'% — omzet '+fmtS(d.omset_real)+' melebihi target '+fmtS(d.target)+' sebesar +'+fmtS(Math.abs(d.gap_omzet))+'.');
+    n1=secNote('ok','🏆','Target sudah terlampaui '+ap+'% — omzet '+fmt(d.omset_real)+' melebihi target '+fmt(d.target)+' sebesar +'+fmt(Math.abs(d.gap_omzet))+'.');
   } else if(ap>=80&&d.hari_kerja>0){
     var hariEstimasi=22-d.hari_kerja;
     var perHari=hariEstimasi>0?Math.round(d.gap_omzet/hariEstimasi):0;
-    n1=secNote('ok','🎯','Pencapaian '+ap+'% dari target. Sisa gap '+fmtS(d.gap_omzet)+'.'+(perHari?' Butuh rata-rata '+fmtS(perHari)+'/hari di '+hariEstimasi+' hari tersisa.':''));
+    n1=secNote('ok','🎯','Pencapaian '+ap+'% dari target. Sisa gap '+fmt(d.gap_omzet)+'.'+(perHari?' Butuh rata-rata '+fmt(perHari)+'/hari di '+hariEstimasi+' hari tersisa.':''));
   } else if(ap>=60){
-    n1=secNote('warn','⚠️','Pencapaian baru '+ap+'% — masih tertinggal '+fmtS(d.gap_omzet)+' dari target. Omzet real '+fmtS(d.omset_real)+' dari target '+fmtS(d.target)+'.');
+    n1=secNote('warn','⚠️','Pencapaian baru '+ap+'% — masih tertinggal '+fmt(d.gap_omzet)+' dari target. Omzet real '+fmt(d.omset_real)+' dari target '+fmt(d.target)+'.');
   } else if(ap>0){
-    n1=secNote('bad','🔴','Pencapaian kritis: '+ap+'%. Gap sebesar '+fmtS(d.gap_omzet)+' sangat besar relatif terhadap progress bulan ini.');
+    n1=secNote('bad','🔴','Pencapaian kritis: '+ap+'%. Gap sebesar '+fmt(d.gap_omzet)+' sangat besar relatif terhadap progress bulan ini.');
   } else {
     n1=secNote('info','📊','Data target atau omzet real belum tersedia untuk bulan ini.');
   }
@@ -663,7 +719,7 @@ function renderSectionNotes(d){
   } else if(d.roas>=5){
     n3=secNote('warn','📊','ROAS '+d.roas+'x — di atas minimum 5x tapi belum optimal. CPL: '+fmt(d.cpl)+'. Masih ada ruang untuk meningkatkan efisiensi iklan.');
   } else {
-    n3=secNote('bad','📉','ROAS hanya '+d.roas+'x — di bawah standar minimum 5x. Total spend '+fmt(d.actual_spend)+' menghasilkan omzet '+fmtS(d.omset_real)+'. CPL: '+fmt(d.cpl)+'.');
+    n3=secNote('bad','📉','ROAS hanya '+d.roas+'x — di bawah standar minimum 5x. Total spend '+fmt(d.actual_spend)+' menghasilkan omzet '+fmt(d.omset_real)+'. CPL: '+fmt(d.cpl)+'.');
   }
 
   // ── 4. TREN HARIAN ──────────────────────────────────
@@ -679,11 +735,11 @@ function renderSectionNotes(d){
     var maxLabel=maxDay&&maxDay.date instanceof Date?String(maxDay.date.getDate()).padStart(2,'0')+'/'+String(maxDay.date.getMonth()+1).padStart(2,'0'):maxDay?maxDay.label:'?';
     var pctMeet=Math.round(pct(hariMeetTarget,totalHari));
     if(pctMeet>=70){
-      n4=secNote('ok','📈',hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) sudah memenuhi target harian '+fmtS(d.target_harian)+'. Hari terbaik: '+maxLabel+' ('+fmtS(maxDay?maxDay.val:0)+').');
+      n4=secNote('ok','📈',hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) sudah memenuhi target harian '+fmt(d.target_harian)+'. Hari terbaik: '+maxLabel+' ('+fmt(maxDay?maxDay.val:0)+').');
     } else if(pctMeet>=40){
-      n4=secNote('warn','📊','Hanya '+hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) yang mencapai target harian '+fmtS(d.target_harian)+'. '+( totalHari-hariMeetTarget)+' hari masih di bawah target. Hari terbaik: '+maxLabel+'.');
+      n4=secNote('warn','📊','Hanya '+hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) yang mencapai target harian '+fmt(d.target_harian)+'. '+( totalHari-hariMeetTarget)+' hari masih di bawah target. Hari terbaik: '+maxLabel+'.');
     } else {
-      n4=secNote('bad','📉','Hanya '+hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) yang melampaui target harian. Mayoritas hari masih di bawah '+fmtS(d.target_harian)+'/hari.');
+      n4=secNote('bad','📉','Hanya '+hariMeetTarget+' dari '+totalHari+' hari ('+pctMeet+'%) yang melampaui target harian. Mayoritas hari masih di bawah '+fmt(d.target_harian)+'/hari.');
     }
   }
 
@@ -762,7 +818,7 @@ function buildAdvisorRecs(d){
   // ROAS tinggi + belum capai target → scale up
   if(hasSpend&&d.roas>=8&&d.achievement_pct<100){
     recs.push({pri:'action',ico:'🚀',title:'Scale Up Budget Iklan Meta',
-      body:'ROAS '+d.roas+'x jauh di atas breakeven — tiap tambahan spend kemungkinan besar masih profitable. Pencapaian baru '+d.achievement_pct+'%, gap tersisa '+fmtS(Math.abs(d.gap_omzet))+'. Naikkan budget harian 20–30% di ad set dengan CPA terbaik — naikkan bertahap (bukan 2x lipat sekaligus) biar algoritma Meta gak reset learning phase. Pantau CPA & ROAS tiap 2–3 hari.'});
+      body:'ROAS '+d.roas+'x jauh di atas breakeven — tiap tambahan spend kemungkinan besar masih profitable. Pencapaian baru '+d.achievement_pct+'%, gap tersisa '+fmt(Math.abs(d.gap_omzet))+'. Naikkan budget harian 20–30% di ad set dengan CPA terbaik — naikkan bertahap (bukan 2x lipat sekaligus) biar algoritma Meta gak reset learning phase. Pantau CPA & ROAS tiap 2–3 hari.'});
   }
   // ROAS sedang + pencapaian rendah → optimasi bertahap
   else if(hasSpend&&d.roas>=5&&d.roas<8&&d.achievement_pct<80){
@@ -778,16 +834,16 @@ function buildAdvisorRecs(d){
   // Gap besar + sisa hari sedikit → percepatan
   if(hasTarget&&d.gap_omzet>0&&d.sisa_hari_kerja>0&&d.sisa_hari_kerja<=7){
     recs.push({pri:'urgent',ico:'⏰',title:'Percepatan Diperlukan — Waktu Menipis',
-      body:'Sisa '+d.sisa_hari_kerja+' hari kerja buat kejar '+fmtS(d.gap_omzet)+'. Target harian perlu naik jadi '+fmtS(d.target_harian_sisa)+'/hari (dari '+fmtS(d.target_harian)+'/hari normal). Prioritaskan retargeting warm audience (CTWA ke yang pernah engage) buat closing cepat — cold prospecting butuh waktu nurture yang gak keburu di sisa waktu sesempit ini.'});
+      body:'Sisa '+d.sisa_hari_kerja+' hari kerja buat kejar '+fmt(d.gap_omzet)+'. Target harian perlu naik jadi '+fmt(d.target_harian_sisa)+'/hari (dari '+fmt(d.target_harian)+'/hari normal). Prioritaskan retargeting warm audience (CTWA ke yang pernah engage) buat closing cepat — cold prospecting butuh waktu nurture yang gak keburu di sisa waktu sesempit ini.'});
   } else if(hasTarget&&d.gap_omzet>0&&d.sisa_hari_kerja>7){
     recs.push({pri:'action',ico:'🎯',title:'Masih Ada Ruang, Jaga Ritme',
-      body:'Sisa '+d.sisa_hari_kerja+' hari kerja buat kejar '+fmtS(d.gap_omzet)+' — target harian perlu '+fmtS(d.target_harian_sisa)+'/hari. Masih realistis dikejar dengan ritme spend yang konsisten, gak perlu panik, tapi mulai siapkan campaign CTWA tambahan buat jaga-jaga kalau minggu depan masih di bawah pace.'});
+      body:'Sisa '+d.sisa_hari_kerja+' hari kerja buat kejar '+fmt(d.gap_omzet)+' — target harian perlu '+fmt(d.target_harian_sisa)+'/hari. Masih realistis dikejar dengan ritme spend yang konsisten, gak perlu panik, tapi mulai siapkan campaign CTWA tambahan buat jaga-jaga kalau minggu depan masih di bawah pace.'});
   }
 
   // Sudah capai target
   if(hasTarget&&d.achievement_pct>=100){
     recs.push({pri:'good',ico:'✅',title:'Target Tercapai — Jaga Momentum',
-      body:'Pencapaian '+d.achievement_pct+'% dari target '+fmtS(d.target)+'. Pertahankan budget spend stabil biar momentum gak drop mendadak, atau evaluasi apakah target bulan depan perlu dinaikkan supaya tim tetap tertantang.'});
+      body:'Pencapaian '+d.achievement_pct+'% dari target '+fmt(d.target)+'. Pertahankan budget spend stabil biar momentum gak drop mendadak, atau evaluasi apakah target bulan depan perlu dinaikkan supaya tim tetap tertantang.'});
   }
 
   if(!recs.length){
@@ -817,14 +873,14 @@ function renderKPIs(d){
 
   // ROW 1: Target vs Realisasi Omzet — sekarang termasuk Biaya Iklan & ROAS
   document.getElementById('kpi-omzet').innerHTML=
-    kpiCard('🎯','Target Omzet',fmtS(d.target),'Bulan '+ymLabel(d.ym),null,null,'hero')+
-    kpiCard('💰','Real Omzet',fmtS(d.omset_real),'Deal Sales: '+fmtS(d.deal_sales),
+    kpiCard('🎯','Target Omzet',fmt(d.target),'Bulan '+ymLabel(d.ym),null,null,'hero')+
+    kpiCard('💰','Real Omzet',fmt(d.omset_real),'Deal Sales: '+fmt(d.deal_sales),
       d.hari_kerja>0?'Hari kerja: '+d.hari_kerja+' hari':null,null,acls)+
-    kpiCard('📊','Pencapaian',ap+'%',fmtS(d.omset_real)+' / '+fmtS(d.target),null,ap,acls)+
-    kpiCard('📉','Gap Omzet',fmtS(Math.abs(d.gap_omzet)),
+    kpiCard('📊','Pencapaian',ap+'%',fmt(d.omset_real)+' / '+fmt(d.target),null,ap,acls)+
+    kpiCard('📉','Gap Omzet',fmt(Math.abs(d.gap_omzet)),
       d.gap_omzet<=0?'✅ Sudah melampaui target':'Sisa yang harus dicapai',
-      d.gap_omzet<=0?'▲ +'+fmtS(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad')+
-    kpiCard('💸','Biaya Iklan',d.actual_spend?fmtS(d.actual_spend):'—','Bulan '+ymLabel(d.ym),null,null,'')+
+      d.gap_omzet<=0?'▲ +'+fmt(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad')+
+    kpiCard('💸','Biaya Iklan',d.actual_spend?fmt(d.actual_spend):'—','Bulan '+ymLabel(d.ym),null,null,'')+
     kpiCard('📡','ROAS',d.roas?d.roas+'x':'—','Real Omzet ÷ Biaya Iklan',
       d.roas>0?(d.roas>=8?'✅ Excellent':d.roas>=5?'⚠️ Average':'❌ Poor'):null,null,rCls);
 }
@@ -833,9 +889,9 @@ function renderKPIs(d){
 function renderMarketingKPIs(d){
   document.getElementById('kpi-marketing').innerHTML=
     kpiCard('💳','Cost per Lead',d.cpl?fmt(d.cpl):'—',d.actual_spend?'dari Rp '+d.actual_spend.toLocaleString('id-ID')+' spend':'Biaya iklan belum ada',null,null,'')+
-    kpiCard('📈','Target Harian',d.target_harian?fmtS(d.target_harian):'—','Per hari kerja',null,null,'')+
-    kpiCard('🔄','Real Harian Avg',d.hari_kerja>0?fmtS(Math.round(d.omset_real/d.hari_kerja)):'—',
-      d.hari_kerja>0?'vs target '+fmtS(d.target_harian):'',null,
+    kpiCard('📈','Target Harian',d.target_harian?fmt(d.target_harian):'—','Per hari kerja',null,null,'')+
+    kpiCard('🔄','Real Harian Avg',d.hari_kerja>0?fmt(Math.round(d.omset_real/d.hari_kerja)):'—',
+      d.hari_kerja>0?'vs target '+fmt(d.target_harian):'',null,
       d.hari_kerja>0&&d.target_harian>0?pct(d.omset_real/d.hari_kerja,d.target_harian):null,'');
 }
 
@@ -895,13 +951,13 @@ function renderCharts(d){
         datalabels:{display:false},
         legend:{position:'bottom',labels:{font:{size:10},boxWidth:14,padding:10,color:tc}},
         tooltip:{callbacks:{label:function(c){
-          if(c.dataset.type==='line')return' Target: '+fmtS(c.parsed.y);
-          return' Omzet: '+fmtS(c.parsed.y);
+          if(c.dataset.type==='line')return' Target: '+fmt(c.parsed.y);
+          return' Omzet: '+fmt(c.parsed.y);
         }}}
       },
       scales:{
         x:{grid:{color:grid},ticks:{color:tc,font:{size:9},maxTicksLimit:16}},
-        y:{grid:{color:grid},ticks:{color:tc,font:{size:9},callback:function(v){return fmtS(v);}},beginAtZero:true}
+        y:{grid:{color:grid},ticks:{color:tc,font:{size:9},callback:function(v){return fmt(v);}},beginAtZero:true}
       }
     }
   });
@@ -968,7 +1024,72 @@ function renderCharts(d){
   );
 
   renderMarketingKPIs(d);
+  renderDealKasirChart(d);
 }
+
+// ── DEAL VS KASIR HARIAN ───────────────────────────────
+function renderDealKasirChart(d){
+  var rows=D.deal_kasir||[];
+  destroyChart('chart-dealkasir');
+
+  if(!rows.length){
+    document.getElementById('dealkasir-empty').style.display='block';
+    document.getElementById('chart-dealkasir').style.display='none';
+    document.getElementById('dealkasir-summary').innerHTML='';
+    document.getElementById('dealkasir-alert').innerHTML='';
+    document.getElementById('dealkasir-checklist').innerHTML='';
+    document.getElementById('chart-badge-dealkasir').textContent='Belum ada data';
+    return;
+  }
+  document.getElementById('dealkasir-empty').style.display='none';
+  document.getElementById('chart-dealkasir').style.display='block';
+  document.getElementById('chart-badge-dealkasir').textContent=rows.length+' hari data';
+
+  var totalDeal=rows.reduce(function(s,r){return s+r.deal;},0);
+  var totalKasir=rows.reduce(function(s,r){return s+r.kasir;},0);
+  var gapDays=rows.filter(function(r){return r.deal>r.kasir;});
+  var totalGap=gapDays.reduce(function(s,r){return s+(r.deal-r.kasir);},0);
+
+  document.getElementById('dealkasir-summary').innerHTML=
+    '<div class="dk-stat"><span class="dk-stat-lbl">Total Deal</span><span class="dk-stat-val">'+fmt(totalDeal)+'</span></div>'
+    +'<div class="dk-stat"><span class="dk-stat-lbl">Total Kasir</span><span class="dk-stat-val">'+fmt(totalKasir)+'</span></div>'
+    +'<div class="dk-stat"><span class="dk-stat-lbl">Hari Ada Gap</span><span class="dk-stat-val" style="color:'+(gapDays.length>0?'var(--red)':'var(--grn)')+'">'+gapDays.length+' / '+rows.length+'</span></div>';
+
+  var alertEl=document.getElementById('dealkasir-alert');
+  if(gapDays.length>0){
+    alertEl.innerHTML='<div class="gap-alert">'
+      +'<div class="gap-alert-ico">⚠️</div>'
+      +'<div><div class="gap-alert-title">'+gapDays.length+' hari Deal lebih besar dari Kasir — total gap '+fmt(totalGap)+'</div>'
+      +'<div class="gap-alert-sub">Artinya ada nilai deal yang belum masuk sebagai uang cash di hari yang sama. Cek 5 kemungkinan penyebab di bawah buat evaluasi.</div></div>'
+      +'</div>';
+  } else {
+    alertEl.innerHTML='<div class="gap-alert ok">'
+      +'<div class="gap-alert-ico">✅</div>'
+      +'<div><div class="gap-alert-title">Gak ada gap — semua Deal sudah masuk Kasir di hari yang sama</div></div>'
+      +'</div>';
+  }
+
+  var ctx=document.getElementById('chart-dealkasir').getContext('2d');
+  var labels=rows.map(function(r){return r.date.getDate()+'/'+(r.date.getMonth()+1);});
+  new Chart(ctx,{
+    type:'line',
+    data:{labels:labels,datasets:[
+      {label:'Deal',data:rows.map(function(r){return r.deal;}),borderColor:'#F59E0B',backgroundColor:'rgba(245,158,11,.08)',fill:true,tension:.3,pointRadius:3},
+      {label:'Kasir',data:rows.map(function(r){return r.kasir;}),borderColor:'#16A34A',backgroundColor:'rgba(22,163,74,.08)',fill:true,tension:.3,pointRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},datalabels:{display:false}},
+      scales:{y:{beginAtZero:true,ticks:{callback:function(v){return fmt(v);}}}}}
+  });
+
+  document.getElementById('dealkasir-checklist').innerHTML=
+    '<div class="checklist-ref">'
+    +'<div class="checklist-ref-title">📋 Kalau Ada Gap, Cek 5 Kemungkinan Ini</div>'
+    +['Pengiriman tidak selesai hari ini','Belum diinput oleh Kasir hari ini','Produk belum ada','Konsumen request kirim tanggal tertentu','Dokumen belum lengkap (termasuk nunggu invoice)']
+      .map(function(item,i){return '<div class="checklist-ref-item"><span class="checklist-ref-num">'+(i+1)+'</span>'+esc(item)+'</div>';}).join('')
+    +'</div>';
+}
+
 
 // ── DIAGNOSE ENGINE ───────────────────────────────────
 function renderDiagnose(d){
@@ -1013,16 +1134,16 @@ function renderDiagnose(d){
 
   // ── Rule 6: Pencapaian sangat rendah
   if(ap<60){
-    items.push({type:'danger',ico:'🔴',title:'Pencapaian kritis: '+ap+'% dari target',body:'Omzet baru '+fmtS(d.omset_real)+' dari target '+fmtS(d.target)+'. Gap Rp '+fmtS(d.gap_omzet)+' masih harus dipenuhi. Perlu akselerasi segera: (1) intensifkan follow-up leads yang masih Tanya ('+ld.tanya+' leads), (2) evaluasi apakah target realistis, (3) pertimbangkan tambah budget iklan.'});
+    items.push({type:'danger',ico:'🔴',title:'Pencapaian kritis: '+ap+'% dari target',body:'Omzet baru '+fmt(d.omset_real)+' dari target '+fmt(d.target)+'. Gap Rp '+fmt(d.gap_omzet)+' masih harus dipenuhi. Perlu akselerasi segera: (1) intensifkan follow-up leads yang masih Tanya ('+ld.tanya+' leads), (2) evaluasi apakah target realistis, (3) pertimbangkan tambah budget iklan.'});
   }
 
   // ── Rule 7: On track / exceeding
   if(ap>=100){
-    items.push({type:'ok',ico:'🏆',title:'Target bulan ini tercapai! ('+ap+'%)',body:'Omzet sudah melampaui target sebesar +'+fmtS(Math.abs(d.gap_omzet))+'. Pertahankan momentum: (1) jaga kualitas closing, (2) dorong upsell ke existing customer, (3) review apa yang berhasil bulan ini untuk direplikasi.'});
+    items.push({type:'ok',ico:'🏆',title:'Target bulan ini tercapai! ('+ap+'%)',body:'Omzet sudah melampaui target sebesar +'+fmt(Math.abs(d.gap_omzet))+'. Pertahankan momentum: (1) jaga kualitas closing, (2) dorong upsell ke existing customer, (3) review apa yang berhasil bulan ini untuk direplikasi.'});
   } else if(ap>=80&&d.hari_kerja>0){
     var sisa_hari=22-d.hari_kerja;
     var per_hari_needed=sisa_hari>0?Math.round(d.gap_omzet/sisa_hari):0;
-    items.push({type:'ok',ico:'🎯',title:'On Track — '+ap+'% tercapai',body:'Pencapaian bagus dengan '+d.hari_kerja+' hari kerja. Perlu tambahan ~'+fmtS(per_hari_needed)+'/hari untuk '+sisa_hari+' hari tersisa agar menutup gap '+fmtS(d.gap_omzet)+'.'});
+    items.push({type:'ok',ico:'🎯',title:'On Track — '+ap+'% tercapai',body:'Pencapaian bagus dengan '+d.hari_kerja+' hari kerja. Perlu tambahan ~'+fmt(per_hari_needed)+'/hari untuk '+sisa_hari+' hari tersisa agar menutup gap '+fmt(d.gap_omzet)+'.'});
   }
 
   // ── Rule 8: ROAS naik vs sebelumnya
@@ -1032,7 +1153,7 @@ function renderDiagnose(d){
 
   // ── Rule 9: AOV drop
   if(d.aov>0&&prev.aov>0&&d.aov<prev.aov*0.85){
-    items.push({type:'warn',ico:'📦',title:'Average Order Value turun',body:'AOV bulan ini '+fmtS(d.aov)+' vs bulan lalu '+fmtS(prev.aov)+' (turun '+Math.round((1-d.aov/prev.aov)*100)+'%). Kemungkinan: (1) banyak order produk kecil/murah, (2) kurang upselling, (3) segmen pelanggan bergeser ke rumahan daripada proyek.'});
+    items.push({type:'warn',ico:'📦',title:'Average Order Value turun',body:'AOV bulan ini '+fmt(d.aov)+' vs bulan lalu '+fmt(prev.aov)+' (turun '+Math.round((1-d.aov/prev.aov)*100)+'%). Kemungkinan: (1) banyak order produk kecil/murah, (2) kurang upselling, (3) segmen pelanggan bergeser ke rumahan daripada proyek.'});
   }
 
   // ── Rule 10: Cost per Lead naik signifikan

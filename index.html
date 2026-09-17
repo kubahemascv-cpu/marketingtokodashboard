@@ -324,7 +324,7 @@ var SHEETS = {
   // kira "KESIMPULAN" itu di spreadsheet OMZET/Iklan yang beda —
   // ternyata itu 1 FILE yang sama kayak report_now, cuma TAB-nya beda.
   // Pakai gid (bukan nama) biar lebih pasti kena tab yang tepat.
-  kesimpulan_source: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:1834609864, sheet:'KESIMPULAN', range:'B1:B12', headers:0 },
+  kesimpulan_source: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:1834609864, sheet:'KESIMPULAN', range:'A1:B15', headers:0 },
   // Sheet BARU: REPORT V.2 (tab sama persis kayak report_now, baris beda) —
   // tabel harian Deal vs Kasir, mulai baris 86
   deal_kasir: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:602747520, sheet:'REPORT V.2', range:'A86:C120', headers:0 },
@@ -462,21 +462,29 @@ function parseNumStr(s){
 }
 
 function parseKesimpulanSource(table){
-  // Range B1:B12 — baris 3/7/8 itu relatif indeks 2/6/7 (0-indexed,
-  // karena range mulai dari baris 1).
   var p=parseTable(table);
   var cols=p.hdrs;
-  var colKey=cols[0]!==undefined?cols[0]:'B';
+  var colA=cols[0]!==undefined?cols[0]:'A';
+  var colB=cols[1]!==undefined?cols[1]:'B';
+
+  // Log JELAS: index array vs isi kolom A & B, biar ketauan PERSIS
+  // posisi 291 (atau angka lain) itu nyangkut di index array yang mana
+  // — gak nebak-nebak lagi.
+  console.log('[Kesimpulan] === DIAGNOSTIK MENTAH ===');
+  p.rows.forEach(function(r,i){
+    console.log('  index['+i+'] → kolom A: "'+(r[colA]!==undefined?r[colA]:'')+'" | kolom B: "'+(r[colB]!==undefined?r[colB]:'')+'"');
+  });
+
   function getRow(rowNum){
     var idx=rowNum-1;
-    return p.rows[idx]?parseNumStr(p.rows[idx][colKey]||0):0;
+    return p.rows[idx]?parseNumStr(p.rows[idx][colB]||0):0;
   }
   var result={
     hari_kerja: getRow(3),
     jumlah_nota: getRow(7),
     aov: getRow(8),
   };
-  console.log('[Kesimpulan] range B1:B12 mentah:',p.rows,'| hari_kerja:',result.hari_kerja,'| jumlah_nota:',result.jumlah_nota,'| aov:',result.aov);
+  console.log('[Kesimpulan] Dipakai sekarang (asumsi row 3/7/8 = index 2/6/7):','hari_kerja=',result.hari_kerja,'jumlah_nota=',result.jumlah_nota,'aov=',result.aov);
   return result;
 }
 

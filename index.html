@@ -319,11 +319,12 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
 var SHEETS = {
   // Sheet BARU: REPORT V.2 — snapshot Omzet Real & Forecast (Target) BULAN BERJALAN saja
   report_now: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT V.2', range:'A1:E6', headers:0 },
-  // Sheet BARU: "KESIMPULAN" — bukan di spreadsheet REPORT V.2, tapi
-  // di spreadsheet OMZET/Iklan (1Pv2b04W...). B3=Hari Kerja (teks
-  // gabungan formula "=REPORT!C83&' Hari (POS)'" — parseNumStr sudah
-  // otomatis bisa narik angkanya), B7=Jumlah Nota, B8=AOV.
-  kesimpulan_source: { id:'1Pv2b04WvHOCtT5Dcd4YvXyn8G3MP5VPbPXEmN5nC6Vc', sheet:'KESIMPULAN', range:'B1:B12', headers:0 },
+  // Sheet BENERAN: "KESIMPULAN" — tab di DALAM file "REPORT V.2"
+  // (spreadsheet 1n9Mp66i3...), gid=1834609864. SEBELUMNYA saya salah
+  // kira "KESIMPULAN" itu di spreadsheet OMZET/Iklan yang beda —
+  // ternyata itu 1 FILE yang sama kayak report_now, cuma TAB-nya beda.
+  // Pakai gid (bukan nama) biar lebih pasti kena tab yang tepat.
+  kesimpulan_source: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:1834609864, sheet:'KESIMPULAN', range:'B1:B12', headers:0 },
   // Sheet BARU: REPORT V.2 (tab sama persis kayak report_now, baris beda) —
   // tabel harian Deal vs Kasir, mulai baris 86
   deal_kasir: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:602747520, sheet:'REPORT V.2', range:'A86:C120', headers:0 },
@@ -339,7 +340,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v5';
+var CACHE_KEY = 'exec_dash_v6';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────

@@ -1238,12 +1238,13 @@ function renderWeeklyChart(){
   rows.forEach(function(r){
     var wk=getWeekBucket(r.date);
     if(wk<0) return; // hari Minggu, skip
-    if(!weekMap[wk]) weekMap[wk]={omzet:0,deal:0};
+    if(!weekMap[wk]) weekMap[wk]={omzet:0,deal:0,hari:0};
+    weekMap[wk].hari+=1;
     weekMap[wk].omzet+=r.kasir;
     weekMap[wk].deal+=r.deal;
   });
   var weekNums=Object.keys(weekMap).map(Number).sort(function(a,b){return a-b;});
-  var labels=weekNums.map(function(w){return 'Pekan '+w;});
+  var labels=weekNums.map(function(w){return 'Pekan '+w+' ('+weekMap[w].hari+' hari)';});
   var dataOmzet=weekNums.map(function(w){return weekMap[w].omzet;});
   var dataDeal=weekNums.map(function(w){return weekMap[w].deal;});
 

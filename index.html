@@ -319,11 +319,11 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
 var SHEETS = {
   // Sheet BARU: REPORT V.2 — snapshot Omzet Real & Forecast (Target) BULAN BERJALAN saja
   report_now: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT V.2', range:'A1:E6', headers:0 },
-  // Sheet BARU: HARI KERJA di REPORT V.2!B3 itu formula "=REPORT!C83&
-  // ' Hari (POS)'" — hasilnya teks campuran, bukan angka bersih. Kita
-  // ambil LANGSUNG dari sumber aslinya (sheet "REPORT", kolom C sekitar
-  // baris 83) biar dapet angka bersih tanpa perlu bongkar teks gabungan.
-  hari_kerja_source: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', sheet:'REPORT', range:'C78:C88', headers:0 },
+  // Sheet BARU: "KESIMPULAN" — bukan di spreadsheet REPORT V.2, tapi
+  // di spreadsheet OMZET/Iklan (1Pv2b04W...). B3=Hari Kerja (teks
+  // gabungan formula "=REPORT!C83&' Hari (POS)'" — parseNumStr sudah
+  // otomatis bisa narik angkanya), B7=Jumlah Nota, B8=AOV.
+  kesimpulan_source: { id:'1Pv2b04WvHOCtT5Dcd4YvXyn8G3MP5VPbPXEmN5nC6Vc', sheet:'KESIMPULAN', range:'B1:B12', headers:0 },
   // Sheet BARU: REPORT V.2 (tab sama persis kayak report_now, baris beda) —
   // tabel harian Deal vs Kasir, mulai baris 86
   deal_kasir: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:602747520, sheet:'REPORT V.2', range:'A86:C120', headers:0 },
@@ -339,7 +339,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v4';
+var CACHE_KEY = 'exec_dash_v5';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -460,28 +460,23 @@ function parseNumStr(s){
   return parseFloat(clean)||0;
 }
 
-function parseHariKerjaSource(table){
-  // Range C78:C88 — baris 83 itu relatif indeks ke-5 (83-78) dari baris
-  // pertama range ini (0-indexed). Diambil defensif: coba posisi yang
-  // diharapkan dulu, kalau kosong/aneh baru cari value valid pertama
-  // di seluruh range sebagai fallback.
+function parseKesimpulanSource(table){
+  // Range B1:B12 — baris 3/7/8 itu relatif indeks 2/6/7 (0-indexed,
+  // karena range mulai dari baris 1).
   var p=parseTable(table);
   var cols=p.hdrs;
-  var colKey=cols[0]!==undefined?cols[0]:'C';
-  var expectedIdx=83-78; // = 5
-  var val=0;
-  if(p.rows[expectedIdx]){
-    val=parseNumStr(p.rows[expectedIdx][colKey]||0);
+  var colKey=cols[0]!==undefined?cols[0]:'B';
+  function getRow(rowNum){
+    var idx=rowNum-1;
+    return p.rows[idx]?parseNumStr(p.rows[idx][colKey]||0):0;
   }
-  if(!val){
-    // Fallback: cari angka valid pertama di seluruh range yang di-fetch
-    for(var i=0;i<p.rows.length;i++){
-      var v=parseNumStr(p.rows[i][colKey]||0);
-      if(v>0){ val=v; break; }
-    }
-  }
-  console.log('[Hari Kerja] range C78:C88 mentah:',p.rows,'| dipakai (baris ~83):',val);
-  return val;
+  var result={
+    hari_kerja: getRow(3),
+    jumlah_nota: getRow(7),
+    aov: getRow(8),
+  };
+  console.log('[Kesimpulan] range B1:B12 mentah:',p.rows,'| hari_kerja:',result.hari_kerja,'| jumlah_nota:',result.jumlah_nota,'| aov:',result.aov);
+  return result;
 }
 
 function parseReportNow(table){
@@ -587,7 +582,7 @@ function parseLeads(table){
 // ── STATE ────────────────────────────────────────────
 var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
-  hari_kerja_fix:0, // Hari Kerja diambil langsung dari REPORT!C83 (bypass teks gabungan)
+  kesimpulan:{hari_kerja:0,jumlah_nota:0,aov:0}, // dari sheet KESIMPULAN (spreadsheet OMZET/Iklan) B3/B7/B8
   deal_kasir:[],   // tabel harian Deal vs Kasir (REPORT V.2 A86:C120) — dipakai Tren Harian
   iklan:[],        // biaya iklan per bulan (sheet OMZET, kolom F)
   pivot_tx:[],     // daily transaction count (col D=date, E=count)
@@ -619,7 +614,7 @@ function loadData(force){
 
   Promise.allSettled([
     gviz(SHEETS.report_now).then(parseReportNow).then(function(v){D.report_now=v;}),
-    gviz(SHEETS.hari_kerja_source).then(parseHariKerjaSource).then(function(v){D.hari_kerja_fix=v;}).catch(function(){D.hari_kerja_fix=0;}),
+    gviz(SHEETS.kesimpulan_source).then(parseKesimpulanSource).then(function(v){D.kesimpulan=v;}).catch(function(err){console.error('[Kesimpulan] GAGAL:',err);D.kesimpulan={hari_kerja:0,jumlah_nota:0,aov:0};}),
     gviz(SHEETS.deal_kasir).then(function(table){console.log('[Deal vs Kasir] Raw table dari Google:',table);return table;}).then(parseDealKasir).then(function(v){D.deal_kasir=v;console.log('[Deal vs Kasir] Berhasil, jumlah baris:',v.length);}).catch(function(err){console.error('[Deal vs Kasir] GAGAL fetch/parse:',err);D.deal_kasir=[];}),
     gviz(SHEETS.iklan).then(parseIklan).then(function(v){D.iklan=v;}),
     gviz(SHEETS.pivot_tx).then(parsePivotTx).then(function(v){D.pivot_tx=v;}),
@@ -676,7 +671,7 @@ function getMonthData(ym){
   var target     = rn.forecast || 0;
   var omset_real = rn.omset_real || 0;
   var deal_sales = rn.deal_sales || 0;
-  var hari_kerja = D.hari_kerja_fix || rn.hari_kerja || 0;
+  var hari_kerja = D.kesimpulan.hari_kerja || rn.hari_kerja || 0;
   var hari_aktif = rn.hari_aktif || 0;
   var actual_spend = iklanRow.biaya_iklan || 0;
   var forecast   = rn.forecast || 0;
@@ -701,10 +696,17 @@ function getMonthData(ym){
   var omzet_pivot_total=pivot_month.reduce(function(s,r){return s+(r.val||0);},0);
   var aov = omset_real>0&&transaksi>0 ? Math.round(omset_real/transaksi) : 0;
 
-  // ── IDEAL AOV — kalau kecepatan transaksi sekarang terus sampai
-  // akhir bulan, rata-rata tiap transaksi harus berapa biar target
-  // kecapai? ──
-  var proyeksi_transaksi = hari_kerja>0 ? Math.round(transaksi/hari_kerja*hari_aktif) : 0;
+  // ── Jumlah Nota & AOV buat CARD — diambil LANGSUNG dari sheet
+  // KESIMPULAN (B7/B8), BUKAN dari hitungan pivot_tx di atas. Dipisah
+  // biar transaksi/aov yang lama (dipakai closing_rate & Diagnosa
+  // Otomatis di bawah) TETAP JALAN seperti biasa, gak kesenggol.
+  var jumlah_nota_card = D.kesimpulan.jumlah_nota || 0;
+  var aov_card = D.kesimpulan.aov || 0;
+
+  // ── IDEAL AOV — kalau kecepatan transaksi (dari KESIMPULAN B7)
+  // sekarang terus sampai akhir bulan, rata-rata tiap transaksi harus
+  // berapa biar target kecapai? ──
+  var proyeksi_transaksi = hari_kerja>0 ? Math.round(jumlah_nota_card/hari_kerja*hari_aktif) : 0;
   var ideal_aov = proyeksi_transaksi>0 ? Math.round(target/proyeksi_transaksi) : 0;
 
   // ── PROYEKSI AKHIR BULAN — kalau kecepatan omzet/deal harian
@@ -740,6 +742,7 @@ function getMonthData(ym){
     closing_rate:closing_rate,cr_online:cr_online,cr_offline:cr_offline,
     cpl:cpl,roas:roas,mer:mer,target_harian:target_harian,
     ideal_aov:ideal_aov,proyeksi_transaksi:proyeksi_transaksi,
+    jumlah_nota_card:jumlah_nota_card,aov_card:aov_card,
     proyeksi_omzet:proyeksi_omzet,proyeksi_deal:proyeksi_deal,
     leads:leadM,pivot_tx_month:pivot_tx_month,pivot_omzet_month:pivot_month,isCurrentMonth:isCurrentMonth};
 }
@@ -978,10 +981,10 @@ function renderMarketingKPIs(d){
 }
 
 function renderAOVKPIs(d){
-  var aovCls = d.aov>0&&d.ideal_aov>0 ? (d.aov>=d.ideal_aov?'good':'bad') : '';
+  var aovCls = d.aov_card>0&&d.ideal_aov>0 ? (d.aov_card>=d.ideal_aov?'good':'bad') : '';
   document.getElementById('kpi-aov').innerHTML=
-    kpiCard('🧾','Jumlah Nota',d.transaksi?d.transaksi.toLocaleString('id-ID'):'—','Bulan '+ymLabel(d.ym),null,null,'')+
-    kpiCard('💵','AOV (Average Order Value)',d.aov?fmt(d.aov):'—','Omzet Real ÷ Jumlah Nota',null,null,aovCls)+
+    kpiCard('🧾','Jumlah Nota',d.jumlah_nota_card?d.jumlah_nota_card.toLocaleString('id-ID'):'—','Bulan '+ymLabel(d.ym),null,null,'')+
+    kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,aovCls)+
     kpiCard('🎯','Ideal AOV',d.ideal_aov?fmt(d.ideal_aov):'—',
       d.proyeksi_transaksi?'Estimasi '+d.proyeksi_transaksi.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero');
 }

@@ -301,7 +301,7 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
 
   <span class="slbl">📅 Omzet Real & Deal Sales per Pekan</span>
   <div class="chart-box">
-    <div class="card-desc" style="font-size:10.5px;color:var(--mut);margin-bottom:12px">Pekan 1 = tanggal 1-7, Pekan 2 = 8-14, Pekan 3 = 15-21, Pekan 4 = 22-28, Pekan 5 = 29-31 (kalau ada)</div>
+    <div class="card-desc" style="font-size:10.5px;color:var(--mut);margin-bottom:12px">Pekan = Senin s/d Sabtu. Pekan 1 mulai dari tanggal 1 sampai Sabtu pertama (bisa lebih pendek dari 6 hari). Hari Minggu gak dihitung (toko tutup).</div>
     <canvas id="chart-weekly" style="min-height:260px"></canvas>
     <div id="weekly-empty" style="display:none;text-align:center;padding:30px 20px;color:var(--mut);font-size:12px">Belum ada data Deal/Kasir buat dikelompokin per pekan.</div>
   </div>
@@ -1203,9 +1203,26 @@ function renderDealKasirChart(d){
 }
 
 // ── OMZET REAL & DEAL SALES PER PEKAN ──────────────────
-// Pekan 1 = tanggal 1-7, Pekan 2 = 8-14, Pekan 3 = 15-21, Pekan 4 =
-// 22-28, Pekan 5 = 29-31 (kalau ada). Dikelompokin dari data harian
-// Deal vs Kasir yang sama (D.deal_kasir), gak butuh sumber baru.
+// Pekan = Senin s/d Sabtu (6 hari kerja), Minggu SELALU dikecualikan
+// (toko tutup). Pekan 1 SELALU mulai dari tanggal 1 bulan itu, apapun
+// harinya, sampai Sabtu pertama yang ketemu — jadi pekan 1 bisa lebih
+// pendek dari 6 hari kalau tanggal 1 gak jatuh di hari Senin. Pekan
+// berikutnya baru full Senin-Sabtu. Ini otomatis nyesuaian di bulan
+// apapun, gak hardcode ke September doang.
+function getWeekBucket(date){
+  var day=date.getDate();
+  var dow=date.getDay(); // 0=Minggu,1=Senin,...,6=Sabtu
+  if(dow===0) return -1; // Minggu, dikecualikan dari pekan manapun
+
+  var firstDow=new Date(date.getFullYear(),date.getMonth(),1).getDay();
+  var firstSaturday = firstDow===6 ? 1 : firstDow===0 ? 7 : 1+(6-firstDow);
+
+  if(day<=firstSaturday) return 1;
+
+  var offset=day-firstSaturday; // hari ke berapa setelah pekan 1 berakhir
+  return 2+Math.floor((offset-2)/7);
+}
+
 function renderWeeklyChart(){
   var rows=D.deal_kasir||[];
   destroyChart('chart-weekly');
@@ -1217,20 +1234,18 @@ function renderWeeklyChart(){
   document.getElementById('weekly-empty').style.display='none';
   document.getElementById('chart-weekly').style.display='block';
 
-  var weeks=[0,0,0,0,0]; // omzet real (kasir) per pekan
-  var weeksDeal=[0,0,0,0,0]; // deal sales per pekan
+  var weekMap={}; // {1:{omzet,deal}, 2:{...}, ...} — Minggu (dow=0) otomatis gak pernah masuk sini
   rows.forEach(function(r){
-    var tgl=r.date.getDate();
-    var idx=Math.min(4,Math.floor((tgl-1)/7)); // 1-7→0,8-14→1,...,29-31→4
-    weeks[idx]+=r.kasir;
-    weeksDeal[idx]+=r.deal;
+    var wk=getWeekBucket(r.date);
+    if(wk<0) return; // hari Minggu, skip
+    if(!weekMap[wk]) weekMap[wk]={omzet:0,deal:0};
+    weekMap[wk].omzet+=r.kasir;
+    weekMap[wk].deal+=r.deal;
   });
-  // Buang pekan yang belum punya data sama sekali di ujung (misal
-  // pekan 5 kalau bulan ini cuma 28 hari)
-  var maxWeek=4;
-  while(maxWeek>0 && weeks[maxWeek]===0 && weeksDeal[maxWeek]===0) maxWeek--;
-  var labels=[]; var dataOmzet=[]; var dataDeal=[];
-  for(var i=0;i<=maxWeek;i++){ labels.push('Pekan '+(i+1)); dataOmzet.push(weeks[i]); dataDeal.push(weeksDeal[i]); }
+  var weekNums=Object.keys(weekMap).map(Number).sort(function(a,b){return a-b;});
+  var labels=weekNums.map(function(w){return 'Pekan '+w;});
+  var dataOmzet=weekNums.map(function(w){return weekMap[w].omzet;});
+  var dataDeal=weekNums.map(function(w){return weekMap[w].deal;});
 
   var ctx=document.getElementById('chart-weekly').getContext('2d');
   new Chart(ctx,{

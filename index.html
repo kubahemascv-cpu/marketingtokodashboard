@@ -268,7 +268,17 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
   <div class="kpi-grid" id="kpi-aov">
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+  </div>
+
+  <div class="advisor-panel">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+      <span style="font-size:22px">🧭</span>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:var(--txt)">Kesimpulan & Opsi Tindakan</div>
+        <div style="font-size:10.5px;color:var(--mut);margin-top:1px">Buat mencapai Target Perusahaan</div>
+      </div>
+    </div>
+    <div id="aov-kesimpulan"></div>
   </div>
 
   <span class="slbl">🔮 Proyeksi Akhir Bulan</span>
@@ -1051,12 +1061,56 @@ function renderMarketingKPIs(d){
 }
 
 function renderAOVKPIs(d){
-  var aovCls = d.aov_card>0&&d.ideal_aov>0 ? (d.aov_card>=d.ideal_aov?'good':'bad') : '';
   document.getElementById('kpi-aov').innerHTML=
     kpiCard('🧾','Jumlah Nota',d.jumlah_nota_card?d.jumlah_nota_card.toLocaleString('id-ID'):'—','Bulan '+ymLabel(d.ym),null,null,'')+
-    kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,aovCls)+
-    kpiCard('🎯','Ideal AOV',d.ideal_aov?fmt(d.ideal_aov):'—',
-      d.proyeksi_transaksi?'Estimasi '+d.proyeksi_transaksi.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero');
+    kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,'');
+  renderAOVKesimpulan(d);
+}
+
+// ── KESIMPULAN & OPSI TINDAKAN — AOV vs Target Perusahaan ──
+// Logic-nya: bandingin AOV aktual sekarang vs Ideal AOV yang dihitung
+// khusus buat capai Target Perusahaan (bukan target lama). Dari situ
+// ditentuin: masalahnya di NILAI per transaksi (perlu upsell) atau di
+// VOLUME transaksi (perlu lebih banyak leads/follow-up), atau dua-duanya.
+function renderAOVKesimpulan(d){
+  var el=document.getElementById('aov-kesimpulan');
+  var items=[];
+
+  if(!d.target_perusahaan||!d.aov_card||!d.ideal_aov_perusahaan){
+    items.push({pri:'info',ico:'📋',title:'Data Belum Lengkap',
+      body:'Target Perusahaan, AOV, atau Jumlah Nota belum semuanya kebaca dari sheet — kesimpulan belum bisa dihitung akurat.'});
+    el.innerHTML=items.map(function(it){
+      return '<div class="advisor-item pri-'+it.pri+'"><div style="font-size:17px;flex-shrink:0">'+it.ico+'</div><div><div style="font-size:12px;font-weight:800;color:var(--txt);margin-bottom:3px">'+esc(it.title)+'</div><div style="font-size:11px;color:var(--txt2);line-height:1.6">'+esc(it.body)+'</div></div></div>';
+    }).join('');
+    return;
+  }
+
+  var aov=d.aov_card, ideal=d.ideal_aov_perusahaan, posisiProyeksi=d.posisi_proyeksi_pct;
+  var gapPerusahaan=d.target_perusahaan-(d.proyeksi_omzet_perusahaan||0);
+  var aovKurang = aov<ideal;
+  var selisihPct = ideal>0 ? Math.round(Math.abs(ideal-aov)/ideal*100) : 0;
+
+  // Skenario nilai per transaksi
+  if(aovKurang){
+    items.push({pri:'action',ico:'📈',title:'Dorong Nilai per Transaksi (Upsell)',
+      body:'AOV sekarang Rp'+fmt(aov)+' masih '+selisihPct+'% di bawah Ideal AOV Rp'+fmt(ideal)+' buat capai Target Perusahaan. Prioritas: UPSELL & BUNDLING tiap closing — tawarin paket lebih besar atau produk komplementer, bukan nambah leads baru dulu.'});
+  } else {
+    items.push({pri:'good',ico:'✅',title:'AOV Sudah di Atas Ideal',
+      body:'AOV sekarang Rp'+fmt(aov)+' udah '+selisihPct+'% di atas Ideal AOV Rp'+fmt(ideal)+'. Nilai per transaksi udah sehat — kalau proyeksi masih kurang, fokusin ke VOLUME transaksi, bukan harga.'});
+  }
+
+  // Skenario posisi keseluruhan
+  if(posisiProyeksi<100){
+    items.push({pri:'urgent',ico:'⚠️',title:'Proyeksi Masih di Bawah Target Perusahaan',
+      body:'Proyeksi cuma '+posisiProyeksi+'% dari Target Perusahaan kalau kecepatan sekarang dipertahanin (gap Rp'+fmt(Math.abs(gapPerusahaan))+'). '+(aovKurang?'Aksi tercepat: naikkan AOV lewat upsell di closing yang udah ada.':'Aksi tercepat: tambah volume transaksi lewat follow-up leads yang lebih agresif.')});
+  } else {
+    items.push({pri:'good',ico:'🎯',title:'On Track ke Target Perusahaan',
+      body:'Proyeksi udah '+posisiProyeksi+'% dari Target Perusahaan. Pertahanin ritme AOV & volume transaksi yang sekarang.'});
+  }
+
+  el.innerHTML=items.map(function(it){
+    return '<div class="advisor-item pri-'+it.pri+'"><div style="font-size:17px;flex-shrink:0">'+it.ico+'</div><div><div style="font-size:12px;font-weight:800;color:var(--txt);margin-bottom:3px">'+esc(it.title)+'</div><div style="font-size:11px;color:var(--txt2);line-height:1.6">'+esc(it.body)+'</div></div></div>';
+  }).join('');
 }
 
 function renderProyeksiKPIs(d){

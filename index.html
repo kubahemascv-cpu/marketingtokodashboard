@@ -520,22 +520,25 @@ function parseKesimpulanSource(table){
     console.log('  index['+i+'] → kolom A: "'+(r[colA]!==undefined?r[colA]:'')+'" | kolom B: "'+(r[colB]!==undefined?r[colB]:'')+'"');
   });
 
-  function getRow(rowNum){
+  function getRow(rowNum,extraOffset){
     // Ketauan dari laporan user: "Jumlah Nota" (row 7) kemarin malah
     // ngambil isi row 8 (AOV) — artinya 1 baris di atas (kemungkinan
     // row 1 kosong) keskip sama Google, geser semua baris ke bawah
-    // naik 1 posisi. Makanya offset-nya -2 (bukan -1) dari nomor baris
-    // sheet aslinya.
-    var idx=rowNum-2;
+    // naik 1 posisi. Makanya offset dasarnya -2 (bukan -1) dari nomor
+    // baris sheet aslinya.
+    // Baris 23 (Deal Sales) butuh offset TAMBAHAN -2 lagi (total -4) —
+    // artinya ada 2 baris kosong LAIN yang keskip di antara baris 8
+    // dan baris 23, terpisah dari kompaksi 1-baris di awal tadi.
+    var idx=rowNum-2-(extraOffset||0);
     return p.rows[idx]?parseNumStr(p.rows[idx][colB]||0):0;
   }
   var result={
     hari_kerja: getRow(3),
     jumlah_nota: getRow(7),
     aov: getRow(8),
-    deal_sales: getRow(23),
+    deal_sales: getRow(23,2),
   };
-  console.log('[Kesimpulan] Dipakai sekarang (asumsi row 3/7/8/23 = index 1/5/6/21, offset -2 krn 1 baris keskip):','hari_kerja=',result.hari_kerja,'jumlah_nota=',result.jumlah_nota,'aov=',result.aov,'deal_sales=',result.deal_sales);
+  console.log('[Kesimpulan] Dipakai sekarang (row3/7/8 → index1/5/6, offset -2; row23 → index19, offset -4):','hari_kerja=',result.hari_kerja,'jumlah_nota=',result.jumlah_nota,'aov=',result.aov,'deal_sales=',result.deal_sales);
   return result;
 }
 
@@ -785,6 +788,11 @@ function getMonthData(ym){
   var hari_aktif_perusahaan = D.forecast_bulanan.hari || 0;
   var posisi_sekarang_pct = pct(omset_real, target_perusahaan);
   var proyeksi_omzet_perusahaan = hari_kerja>0 ? Math.round(omset_real/hari_kerja*hari_aktif_perusahaan) : 0;
+  // Proyeksi berbasis DEAL SALES (bukan Omzet Real) — dipakai khusus
+  // buat "Kesimpulan & Opsi Tindakan", konsisten sama keputusan Gap
+  // Omzet/ROAS di Section 1 yang udah dipindah ke basis Deal Sales.
+  var proyeksi_deal_perusahaan = hari_kerja>0 ? Math.round(deal_sales/hari_kerja*hari_aktif_perusahaan) : 0;
+  var posisi_proyeksi_deal_pct = pct(proyeksi_deal_perusahaan, target_perusahaan);
   var posisi_proyeksi_pct = pct(proyeksi_omzet_perusahaan, target_perusahaan);
   var proyeksi_transaksi_perusahaan = hari_kerja>0 ? Math.round(jumlah_nota_card/hari_kerja*hari_aktif_perusahaan) : 0;
   var ideal_aov_perusahaan = proyeksi_transaksi_perusahaan>0 ? Math.round(target_perusahaan/proyeksi_transaksi_perusahaan) : 0;
@@ -822,6 +830,7 @@ function getMonthData(ym){
     target_perusahaan:target_perusahaan,hari_aktif_perusahaan:hari_aktif_perusahaan,
     posisi_sekarang_pct:posisi_sekarang_pct,posisi_proyeksi_pct:posisi_proyeksi_pct,
     proyeksi_omzet_perusahaan:proyeksi_omzet_perusahaan,ideal_aov_perusahaan:ideal_aov_perusahaan,
+    proyeksi_deal_perusahaan:proyeksi_deal_perusahaan,posisi_proyeksi_deal_pct:posisi_proyeksi_deal_pct,
     proyeksi_transaksi_perusahaan:proyeksi_transaksi_perusahaan,
     leads:leadM,pivot_tx_month:pivot_tx_month,pivot_omzet_month:pivot_month,isCurrentMonth:isCurrentMonth};
 }
@@ -974,14 +983,14 @@ function buildAdvisorRecs(d){
   }
 
   // ROAS tinggi + belum capai target → scale up
-  if(hasSpend&&d.roas>=8&&d.achievement_pct<100){
+  if(hasSpend&&d.roas>=8&&d.deal_sales_pct<100){
     recs.push({pri:'action',ico:'🚀',title:'Scale Up Budget Iklan Meta',
-      body:'ROAS '+d.roas+'x jauh di atas breakeven — tiap tambahan spend kemungkinan besar masih profitable. Pencapaian baru '+d.achievement_pct+'%, gap tersisa '+fmt(Math.abs(d.gap_omzet))+'. Naikkan budget harian 20–30% di ad set dengan CPA terbaik — naikkan bertahap (bukan 2x lipat sekaligus) biar algoritma Meta gak reset learning phase. Pantau CPA & ROAS tiap 2–3 hari.'});
+      body:'ROAS '+d.roas+'x jauh di atas breakeven — tiap tambahan spend kemungkinan besar masih profitable. Pencapaian Deal Sales baru '+d.deal_sales_pct+'%, gap tersisa '+fmt(Math.abs(d.gap_omzet))+'. Naikkan budget harian 20–30% di ad set dengan CPA terbaik — naikkan bertahap (bukan 2x lipat sekaligus) biar algoritma Meta gak reset learning phase. Pantau CPA & ROAS tiap 2–3 hari.'});
   }
   // ROAS sedang + pencapaian rendah → optimasi bertahap
-  else if(hasSpend&&d.roas>=5&&d.roas<8&&d.achievement_pct<80){
+  else if(hasSpend&&d.roas>=5&&d.roas<8&&d.deal_sales_pct<80){
     recs.push({pri:'action',ico:'📊',title:'Optimasi Bertahap, Bukan Scale Agresif',
-      body:'ROAS '+d.roas+'x masih sehat tapi belum excellent, pencapaian baru '+d.achievement_pct+'%. Naikkan budget bertahap 10–15% per minggu sambil pantau frequency & CPA ketat. Uji 1–2 variasi creative baru buat cari winning ad yang layak didorong lebih agresif sebelum nambah budget besar-besaran.'});
+      body:'ROAS '+d.roas+'x masih sehat tapi belum excellent, pencapaian Deal Sales baru '+d.deal_sales_pct+'%. Naikkan budget bertahap 10–15% per minggu sambil pantau frequency & CPA ketat. Uji 1–2 variasi creative baru buat cari winning ad yang layak didorong lebih agresif sebelum nambah budget besar-besaran.'});
   }
   // ROAS rendah → audit
   if(hasSpend&&d.roas>0&&d.roas<5){
@@ -999,9 +1008,9 @@ function buildAdvisorRecs(d){
   }
 
   // Sudah capai target
-  if(hasTarget&&d.achievement_pct>=100){
+  if(hasTarget&&d.deal_sales_pct>=100){
     recs.push({pri:'good',ico:'✅',title:'Target Tercapai — Jaga Momentum',
-      body:'Pencapaian '+d.achievement_pct+'% dari target '+fmt(d.target)+'. Pertahankan budget spend stabil biar momentum gak drop mendadak, atau evaluasi apakah target bulan depan perlu dinaikkan supaya tim tetap tertantang.'});
+      body:'Pencapaian Deal Sales '+d.deal_sales_pct+'% dari target '+fmt(d.target)+'. Pertahankan budget spend stabil biar momentum gak drop mendadak, atau evaluasi apakah target bulan depan perlu dinaikkan supaya tim tetap tertantang.'});
   }
 
   if(!recs.length){
@@ -1080,8 +1089,8 @@ function renderAOVKesimpulan(d){
     return;
   }
 
-  var aov=d.aov_card, ideal=d.ideal_aov_perusahaan, posisiProyeksi=d.posisi_proyeksi_pct;
-  var gapPerusahaan=d.target_perusahaan-(d.proyeksi_omzet_perusahaan||0);
+  var aov=d.aov_card, ideal=d.ideal_aov_perusahaan, posisiProyeksi=d.posisi_proyeksi_deal_pct;
+  var gapPerusahaan=d.target_perusahaan-(d.proyeksi_deal_perusahaan||0);
   var aovKurang = aov<ideal;
   var selisihPct = ideal>0 ? Math.round(Math.abs(ideal-aov)/ideal*100) : 0;
 

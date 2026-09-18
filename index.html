@@ -1042,14 +1042,14 @@ function renderKPIs(d){
   // Deal Sales (bukan Omzet Real lagi), sesuai keputusan user.
   document.getElementById('kpi-omzet').innerHTML=
     kpiCard('🎯','Target Omzet',fmt(d.target),'Bulan '+ymLabel(d.ym),null,null,'hero')+
-    kpiCard('📉','Gap Omzet',fmt(Math.abs(d.gap_omzet)),
-      d.gap_omzet<=0?'✅ Deal Sales sudah melampaui target':'Sisa yang harus dicapai (vs Deal Sales)',
-      d.gap_omzet<=0?'▲ +'+fmt(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad')+
     kpiCard('🤝','Deal Sales',fmt(d.deal_sales),'Sheet KESIMPULAN (B23)',null,null,'')+
     kpiCard('📈','Pencapaian Deal Sales',dap+'%',fmt(d.deal_sales)+' / '+fmt(d.target),null,dap,dacls)+
     kpiCard('💸','Biaya Iklan',d.actual_spend?fmt(d.actual_spend):'—','Bulan '+ymLabel(d.ym),null,null,'')+
     kpiCard('📡','ROAS',d.roas?d.roas+'x':'—','Deal Sales ÷ Biaya Iklan',
-      d.roas>0?(d.roas>=8?'✅ Excellent':d.roas>=5?'⚠️ Average':'❌ Poor'):null,null,rCls);
+      d.roas>0?(d.roas>=8?'✅ Excellent':d.roas>=5?'⚠️ Average':'❌ Poor'):null,null,rCls)+
+    kpiCard('📉','Gap Omzet',fmt(Math.abs(d.gap_omzet)),
+      d.gap_omzet<=0?'✅ Deal Sales sudah melampaui target':'Sisa yang harus dicapai (vs Deal Sales)',
+      d.gap_omzet<=0?'▲ +'+fmt(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad');
 }
 
 // ── MARKETING KPI ROW (sisa: Cost per Lead, Target Harian, Real Harian) ──

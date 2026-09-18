@@ -3,7 +3,7 @@
 // punya Service Worker, jadi gak pernah dikenali Android sebagai app
 // yang bisa diinstall permanen — cuma jadi bookmark biasa.
 
-const CACHE = 'exec-dash-v17';
+const CACHE = 'exec-dash-v18';
 
 self.addEventListener('install', function (e) {
   e.waitUntil(

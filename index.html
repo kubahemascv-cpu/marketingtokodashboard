@@ -277,6 +277,15 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
   </div>
 
+  <span class="slbl">🎯 Posisi vs Target Perusahaan</span>
+  <div style="font-size:10.5px;color:var(--mut);background:var(--card2);border-radius:10px;padding:10px 12px;margin-bottom:14px;line-height:1.6">Target resmi dari manajemen (tabel FORECAST per bulan) — beda sumber dari Target Omzet di section pertama. Update otomatis tiap ganti bulan.</div>
+  <div class="kpi-grid" id="kpi-target-perusahaan">
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+  </div>
+
   <span class="slbl">📈 Tren Harian</span>
   <div class="chart-box">
     <div class="chart-hd">
@@ -325,6 +334,10 @@ var SHEETS = {
   // ternyata itu 1 FILE yang sama kayak report_now, cuma TAB-nya beda.
   // Pakai gid (bukan nama) biar lebih pasti kena tab yang tepat.
   kesimpulan_source: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:1834609864, sheet:'KESIMPULAN', range:'A1:B15', headers:0 },
+  // Sheet BARU: "FORECAST" — tabel Target Perusahaan per bulan
+  // (ditetapin manajemen dari awal, BUKAN hasil hitungan sistem kayak
+  // sumber report_now). A=Bulan, B=Hari, C=Target/Hari, D=Target/Bulan.
+  forecast_bulanan: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:1593919434, sheet:'FORECAST', range:'A1:D14', headers:0 },
   // Sheet BARU: REPORT V.2 (tab sama persis kayak report_now, baris beda) —
   // tabel harian Deal vs Kasir, mulai baris 86
   deal_kasir: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:602747520, sheet:'REPORT V.2', range:'A86:C120', headers:0 },
@@ -340,7 +353,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v6';
+var CACHE_KEY = 'exec_dash_v7';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -459,6 +472,30 @@ function parseNumStr(s){
   if(typeof s==='number')return s;
   var clean=String(s||'').replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.');
   return parseFloat(clean)||0;
+}
+
+function parseForecastBulanan(table){
+  // Cari baris yang nama bulannya cocok sama bulan yang lagi jalan.
+  // A=Bulan, B=Hari, D=Target/Bulan (kolom C dilewatin, itu Target/Hari
+  // yang gak dipake di sini karena kita mau Target/Bulan total-nya).
+  var p=parseTable(table);
+  var cols=p.hdrs;
+  var colA=cols[0]!==undefined?cols[0]:'A';
+  var colB=cols[1]!==undefined?cols[1]:'B';
+  var colD=cols[3]!==undefined?cols[3]:'D';
+
+  var currentMonthName=MONTHS_ID[new Date().getMonth()];
+  var result={hari:0,target_bulan:0,found:false};
+  p.rows.forEach(function(r){
+    var bulanText=String(r[colA]||'').trim();
+    if(bulanText.toLowerCase()===currentMonthName.toLowerCase()){
+      result.hari=parseNumStr(r[colB]||0);
+      result.target_bulan=parseNumStr(r[colD]||0);
+      result.found=true;
+    }
+  });
+  console.log('[Forecast Bulanan] cari baris bulan "'+currentMonthName+'":',result);
+  return result;
 }
 
 function parseKesimpulanSource(table){
@@ -597,6 +634,7 @@ function parseLeads(table){
 var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
   kesimpulan:{hari_kerja:0,jumlah_nota:0,aov:0}, // dari sheet KESIMPULAN (spreadsheet OMZET/Iklan) B3/B7/B8
+  forecast_bulanan:{hari:0,target_bulan:0,found:false}, // Target Perusahaan resmi per bulan (tabel FORECAST)
   deal_kasir:[],   // tabel harian Deal vs Kasir (REPORT V.2 A86:C120) — dipakai Tren Harian
   iklan:[],        // biaya iklan per bulan (sheet OMZET, kolom F)
   pivot_tx:[],     // daily transaction count (col D=date, E=count)
@@ -629,6 +667,7 @@ function loadData(force){
   Promise.allSettled([
     gviz(SHEETS.report_now).then(parseReportNow).then(function(v){D.report_now=v;}),
     gviz(SHEETS.kesimpulan_source).then(parseKesimpulanSource).then(function(v){D.kesimpulan=v;}).catch(function(err){console.error('[Kesimpulan] GAGAL:',err);D.kesimpulan={hari_kerja:0,jumlah_nota:0,aov:0};}),
+    gviz(SHEETS.forecast_bulanan).then(parseForecastBulanan).then(function(v){D.forecast_bulanan=v;}).catch(function(err){console.error('[Forecast Bulanan] GAGAL:',err);D.forecast_bulanan={hari:0,target_bulan:0,found:false};}),
     gviz(SHEETS.deal_kasir).then(function(table){console.log('[Deal vs Kasir] Raw table dari Google:',table);return table;}).then(parseDealKasir).then(function(v){D.deal_kasir=v;console.log('[Deal vs Kasir] Berhasil, jumlah baris:',v.length);}).catch(function(err){console.error('[Deal vs Kasir] GAGAL fetch/parse:',err);D.deal_kasir=[];}),
     gviz(SHEETS.iklan).then(parseIklan).then(function(v){D.iklan=v;}),
     gviz(SHEETS.pivot_tx).then(parsePivotTx).then(function(v){D.pivot_tx=v;}),
@@ -728,6 +767,19 @@ function getMonthData(ym){
   var proyeksi_omzet = hari_kerja>0 ? Math.round(omset_real/hari_kerja*hari_aktif) : 0;
   var proyeksi_deal = hari_kerja>0 ? Math.round(deal_sales/hari_kerja*hari_aktif) : 0;
 
+  // ── POSISI VS TARGET PERUSAHAAN — pakai Target & Hari Kerja dari
+  // tabel FORECAST resmi (ditetapin manajemen), BUKAN dari REPORT V.2.
+  // Section "Target vs Realisasi Omzet" yang lama TIDAK diubah — ini
+  // lapisan pembanding TERPISAH, konsisten satu sumber (target DAN
+  // hari-nya sama-sama dari tabel FORECAST ini).
+  var target_perusahaan = D.forecast_bulanan.target_bulan || 0;
+  var hari_aktif_perusahaan = D.forecast_bulanan.hari || 0;
+  var posisi_sekarang_pct = pct(omset_real, target_perusahaan);
+  var proyeksi_omzet_perusahaan = hari_kerja>0 ? Math.round(omset_real/hari_kerja*hari_aktif_perusahaan) : 0;
+  var posisi_proyeksi_pct = pct(proyeksi_omzet_perusahaan, target_perusahaan);
+  var proyeksi_transaksi_perusahaan = hari_kerja>0 ? Math.round(jumlah_nota_card/hari_kerja*hari_aktif_perusahaan) : 0;
+  var ideal_aov_perusahaan = proyeksi_transaksi_perusahaan>0 ? Math.round(target_perusahaan/proyeksi_transaksi_perusahaan) : 0;
+
   // ── TOTAL LEADS MASUK — TIDAK DIUBAH (masih dipakai Diagnosa Otomatis) ──
   var beli_tdk = leadM.beli || 0;
   var offline_tx = Math.max(0, transaksi - beli_tdk);
@@ -758,6 +810,10 @@ function getMonthData(ym){
     ideal_aov:ideal_aov,proyeksi_transaksi:proyeksi_transaksi,
     jumlah_nota_card:jumlah_nota_card,aov_card:aov_card,
     proyeksi_omzet:proyeksi_omzet,proyeksi_deal:proyeksi_deal,
+    target_perusahaan:target_perusahaan,hari_aktif_perusahaan:hari_aktif_perusahaan,
+    posisi_sekarang_pct:posisi_sekarang_pct,posisi_proyeksi_pct:posisi_proyeksi_pct,
+    proyeksi_omzet_perusahaan:proyeksi_omzet_perusahaan,ideal_aov_perusahaan:ideal_aov_perusahaan,
+    proyeksi_transaksi_perusahaan:proyeksi_transaksi_perusahaan,
     leads:leadM,pivot_tx_month:pivot_tx_month,pivot_omzet_month:pivot_month,isCurrentMonth:isCurrentMonth};
 }
 
@@ -1013,6 +1069,23 @@ function renderProyeksiKPIs(d){
       omzetPct!==null?omzetPct+'% dari target kalau kecepatan sekarang bertahan':'Butuh data hari kerja',null,null,omzetCls)+
     kpiCard('🤝','Proyeksi Deal Sales',d.proyeksi_deal?fmt(d.proyeksi_deal):'—',
       dealPct!==null?dealPct+'% dari target kalau kecepatan sekarang bertahan':'Butuh data hari kerja',null,null,dealCls);
+  renderTargetPerusahaanKPIs(d);
+}
+
+function renderTargetPerusahaanKPIs(d){
+  var hasTarget = d.target_perusahaan>0;
+  var sekarangCls = d.posisi_sekarang_pct>=90?'good':d.posisi_sekarang_pct>=70?'warn':'bad';
+  var proyeksiCls = d.posisi_proyeksi_pct>=100?'good':d.posisi_proyeksi_pct>=80?'warn':'bad';
+  document.getElementById('kpi-target-perusahaan').innerHTML=
+    kpiCard('🏢','Target Perusahaan',hasTarget?fmt(d.target_perusahaan):'—',
+      hasTarget?'Bulan '+ymLabel(d.ym)+' · '+d.hari_aktif_perusahaan+' hari kerja':'Data belum ketemu di tabel FORECAST',null,null,'hero')+
+    kpiCard('📍','Posisi Sekarang',hasTarget?d.posisi_sekarang_pct+'%':'—',
+      hasTarget?fmt(d.omset_real)+' / '+fmt(d.target_perusahaan):'',null,hasTarget?d.posisi_sekarang_pct:null,hasTarget?sekarangCls:'')+
+    kpiCard('🔭','Posisi Proyeksi',hasTarget&&d.proyeksi_omzet_perusahaan?d.posisi_proyeksi_pct+'%':'—',
+      hasTarget&&d.proyeksi_omzet_perusahaan?'Proyeksi '+fmt(d.proyeksi_omzet_perusahaan)+' / '+fmt(d.target_perusahaan):'Butuh data hari kerja',null,
+      hasTarget?d.posisi_proyeksi_pct:null,hasTarget&&d.proyeksi_omzet_perusahaan?proyeksiCls:'')+
+    kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
+      d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'');
 }
 
 // ── CHARTS ────────────────────────────────────────────

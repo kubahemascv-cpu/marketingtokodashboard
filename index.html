@@ -1263,7 +1263,7 @@ function renderCharts(d){
 
   renderMarketingKPIs(d);
   renderDealKasirChart(d);
-  renderWeeklyChart();
+  renderWeeklyChart(d);
 }
 
 // ── DEAL VS KASIR HARIAN ───────────────────────────────
@@ -1350,7 +1350,7 @@ function getWeekBucket(date){
   return 2+Math.floor((offset-2)/7);
 }
 
-function renderWeeklyChart(){
+function renderWeeklyChart(d){
   var rows=D.deal_kasir||[];
   destroyChart('chart-weekly');
   if(!rows.length){
@@ -1375,13 +1375,27 @@ function renderWeeklyChart(){
   var dataOmzet=weekNums.map(function(w){return weekMap[w].omzet;});
   var dataDeal=weekNums.map(function(w){return weekMap[w].deal;});
 
+  // ── Target Pekanan (garis putus-putus) — pakai Target Harian yang
+  // STABIL (Target Perusahaan ÷ Total Hari Aktif Sebulan), BUKAN
+  // Target Harian yang di section Efisiensi Marketing (itu berubah
+  // tiap hari karena dibagi hari yang UDAH berlalu). Dikali jumlah
+  // hari beneran di tiap pekan, biar Pekan 1 yang lebih pendek juga
+  // dapet target yang proporsional.
+  var targetHarianStabil = d.hari_aktif_perusahaan>0 ? (d.target_perusahaan/d.hari_aktif_perusahaan) : 0;
+  var dataTargetPekan = weekNums.map(function(w){return Math.round(targetHarianStabil*weekMap[w].hari);});
+  var hasTarget = targetHarianStabil>0;
+
   var ctx=document.getElementById('chart-weekly').getContext('2d');
+  var datasets=[
+    {type:'bar',label:'Omzet Real',data:dataOmzet,backgroundColor:'#16A34A',borderRadius:6,order:2},
+    {type:'bar',label:'Deal Sales',data:dataDeal,backgroundColor:'#F59E0B',borderRadius:6,order:2},
+  ];
+  if(hasTarget){
+    datasets.push({type:'line',label:'Target Pekan',data:dataTargetPekan,borderColor:'#1C1E26',borderDash:[6,4],borderWidth:2,pointRadius:3,pointBackgroundColor:'#1C1E26',tension:0,fill:false,order:1});
+  }
   new Chart(ctx,{
     type:'bar',
-    data:{labels:labels,datasets:[
-      {label:'Omzet Real',data:dataOmzet,backgroundColor:'#16A34A',borderRadius:6},
-      {label:'Deal Sales',data:dataDeal,backgroundColor:'#F59E0B',borderRadius:6},
-    ]},
+    data:{labels:labels,datasets:datasets},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},datalabels:{display:false}},
       scales:{y:{beginAtZero:true,ticks:{callback:function(v){return fmt(v);}}}}}

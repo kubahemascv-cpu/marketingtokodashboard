@@ -1240,8 +1240,8 @@ function renderCharts(d){
     {
       label:'Omzet Aktual',
       data:actuals,
-      backgroundColor:actuals.map(function(v){return v>=(d.target_harian||0)?'rgba(22,163,74,.75)':'rgba(245,197,24,.75)';}),
-      borderColor:actuals.map(function(v){return v>=(d.target_harian||0)?'#16A34A':'#C89B00';}),
+      backgroundColor:'rgba(245,197,24,.75)',
+      borderColor:'#C89B00',
       borderWidth:1.5,borderRadius:4,order:2,
     },
   ];

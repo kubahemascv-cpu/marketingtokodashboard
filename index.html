@@ -850,12 +850,15 @@ function getMonthData(ym){
   var nota_ideal_sejauh_ini = (total_nota_ideal_sebulan>0&&hari_aktif_perusahaan>0) ? Math.round(total_nota_ideal_sebulan*hari_kerja/hari_aktif_perusahaan) : 0;
   var ideal_aov_perusahaan = proyeksi_transaksi_perusahaan>0 ? Math.round(target_perusahaan/proyeksi_transaksi_perusahaan) : 0;
 
-  // ── TOTAL LEADS MASUK — TIDAK DIUBAH (masih dipakai Diagnosa Otomatis) ──
+  // ── TOTAL LEADS MASUK — sekarang pakai jumlah_nota_card (sumber
+  // KESIMPULAN B7, udah terbukti bener) sebagai basis, BUKAN
+  // "transaksi" (dari data PIVOT lama) yang ternyata sering 0/gak
+  // reliable. Ini ngaruh ke closing_rate juga, bukan cuma teks doang.
   var beli_tdk = leadM.beli || 0;
-  var offline_tx = Math.max(0, transaksi - beli_tdk);
+  var offline_tx = Math.max(0, jumlah_nota_card - beli_tdk);
   var total_leads_masuk = leadM.total + offline_tx;
 
-  var closing_rate = pct(transaksi, total_leads_masuk);
+  var closing_rate = pct(jumlah_nota_card, total_leads_masuk);
   var cr_online = pct(leadM.beli, leadM.total);
   var cr_offline = offline_tx > 0 ? 100 : 0;
   var cpl = actual_spend>0&&total_leads_masuk>0 ? Math.round(actual_spend/total_leads_masuk) : 0;
@@ -1127,7 +1130,7 @@ function renderAOVKPIs(d){
     kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
       d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero')+
     kpiCard('🤝','Closing Rate',d.total_leads_masuk>0?d.closing_rate+'%':'—',
-      d.total_leads_masuk>0?d.transaksi.toLocaleString('id-ID')+' nota / '+d.total_leads_masuk.toLocaleString('id-ID')+' leads masuk':'Belum ada data leads',
+      d.total_leads_masuk>0?d.jumlah_nota_card.toLocaleString('id-ID')+' nota / '+d.total_leads_masuk.toLocaleString('id-ID')+' leads masuk':'Belum ada data leads',
       null,null,d.total_leads_masuk>0?(d.closing_rate>=15?'good':d.closing_rate>=8?'warn':'bad'):'');
   renderAOVKesimpulan(d);
 }

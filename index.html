@@ -840,6 +840,13 @@ function getMonthData(ym){
   var posisi_proyeksi_deal_pct = pct(proyeksi_deal_perusahaan, target_perusahaan);
   var posisi_proyeksi_pct = pct(proyeksi_omzet_perusahaan, target_perusahaan);
   var proyeksi_transaksi_perusahaan = hari_kerja>0 ? Math.round(jumlah_nota_card/hari_kerja*hari_aktif_perusahaan) : 0;
+
+  // ── NOTA IDEAL SEJAUH INI — kebalikan dari Ideal AOV: "kalau AOV
+  // tetep segini, harusnya UDAH ADA berapa nota sejauh hari yang
+  // berlalu?" (bukan proyeksi akhir bulan, tapi pace-check SEKARANG,
+  // biar apple-to-apple sama Jumlah Nota yang juga angka sejauh ini).
+  var total_nota_ideal_sebulan = aov_card>0 ? Math.round(target_perusahaan/aov_card) : 0;
+  var nota_ideal_sejauh_ini = (total_nota_ideal_sebulan>0&&hari_aktif_perusahaan>0) ? Math.round(total_nota_ideal_sebulan*hari_kerja/hari_aktif_perusahaan) : 0;
   var ideal_aov_perusahaan = proyeksi_transaksi_perusahaan>0 ? Math.round(target_perusahaan/proyeksi_transaksi_perusahaan) : 0;
 
   // ── TOTAL LEADS MASUK — TIDAK DIUBAH (masih dipakai Diagnosa Otomatis) ──
@@ -875,6 +882,7 @@ function getMonthData(ym){
     target_perusahaan:target_perusahaan,hari_aktif_perusahaan:hari_aktif_perusahaan,
     posisi_sekarang_pct:posisi_sekarang_pct,posisi_proyeksi_pct:posisi_proyeksi_pct,
     proyeksi_omzet_perusahaan:proyeksi_omzet_perusahaan,ideal_aov_perusahaan:ideal_aov_perusahaan,
+    nota_ideal_sejauh_ini:nota_ideal_sejauh_ini,
     proyeksi_deal_perusahaan:proyeksi_deal_perusahaan,posisi_proyeksi_deal_pct:posisi_proyeksi_deal_pct,
     proyeksi_transaksi_perusahaan:proyeksi_transaksi_perusahaan,
     leads:leadM,pivot_tx_month:pivot_tx_month,pivot_omzet_month:pivot_month,isCurrentMonth:isCurrentMonth};
@@ -1111,7 +1119,9 @@ function renderMarketingKPIs(d){
 
 function renderAOVKPIs(d){
   document.getElementById('kpi-aov').innerHTML=
-    kpiCard('🧾','Jumlah Nota',d.jumlah_nota_card?d.jumlah_nota_card.toLocaleString('id-ID'):'—','Bulan '+ymLabel(d.ym),null,null,'')+
+    kpiCard('🧾','Jumlah Nota',d.jumlah_nota_card?d.jumlah_nota_card.toLocaleString('id-ID'):'—',
+      d.nota_ideal_sejauh_ini?'Ideal sejauh ini: '+d.nota_ideal_sejauh_ini.toLocaleString('id-ID')+' nota ('+(d.jumlah_nota_card>=d.nota_ideal_sejauh_ini?'✅ on pace':'⚠️ kurang '+(d.nota_ideal_sejauh_ini-d.jumlah_nota_card).toLocaleString('id-ID'))+')':'Bulan '+ymLabel(d.ym),
+      null,null,d.nota_ideal_sejauh_ini?(d.jumlah_nota_card>=d.nota_ideal_sejauh_ini?'good':'bad'):'')+
     kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,'')+
     kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
       d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero');

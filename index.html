@@ -1172,7 +1172,7 @@ function renderAOVKPIs(d){
     kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
       d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero')+
     kpiCard('🤝','Closing Rate',d.total_leads_masuk>0?d.closing_rate+'%':'—',
-      d.total_leads_masuk>0?d.jumlah_nota_card.toLocaleString('id-ID')+' nota / '+d.total_leads_masuk.toLocaleString('id-ID')+' leads masuk ('+(d.hasNotaMediaData?'data tercatat':'estimasi')+')':'Belum ada data leads',
+      d.total_leads_masuk>0?d.jumlah_nota_card.toLocaleString('id-ID')+' nota / '+d.total_leads_masuk.toLocaleString('id-ID')+' leads ('+d.leads.total.toLocaleString('id-ID')+' Online + '+d.offline_tx.toLocaleString('id-ID')+' Offline, '+(d.hasNotaMediaData?'data tercatat':'estimasi')+')':'Belum ada data leads',
       null,null,d.total_leads_masuk>0?(d.closing_rate>=15?'good':d.closing_rate>=8?'warn':'bad'):'');
   renderNotaMediaValidasi(d);
   renderAOVKesimpulan(d);

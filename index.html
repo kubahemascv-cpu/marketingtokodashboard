@@ -268,6 +268,7 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
   </div>
   <div id="nota-media-validasi"></div>
 
@@ -1171,9 +1172,12 @@ function renderAOVKPIs(d){
     kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,'')+
     kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
       d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero')+
-    kpiCard('🤝','Closing Rate',d.total_leads_masuk>0?d.closing_rate+'%':'—',
-      d.total_leads_masuk>0?d.jumlah_nota_card.toLocaleString('id-ID')+' nota / '+d.total_leads_masuk.toLocaleString('id-ID')+' leads ('+d.leads.total.toLocaleString('id-ID')+' Online + '+d.offline_tx.toLocaleString('id-ID')+' Offline, '+(d.hasNotaMediaData?'data tercatat':'estimasi')+')':'Belum ada data leads',
-      null,null,d.total_leads_masuk>0?(d.closing_rate>=15?'good':d.closing_rate>=8?'warn':'bad'):'');
+    kpiCard('📲','Closing Rate Online',d.leads.total>0?d.cr_online+'%':'—',
+      d.leads.total>0?d.leads.beli.toLocaleString('id-ID')+' beli / '+d.leads.total.toLocaleString('id-ID')+' leads TDK (real konversi)':'Belum ada data leads TDK',
+      null,null,d.leads.total>0?(d.cr_online>=10?'good':d.cr_online>=5?'warn':'bad'):'')+
+    kpiCard('🏪','Nota Offline (Walk-in)',d.hasNotaMediaData||d.offline_tx?d.offline_tx.toLocaleString('id-ID'):'—',
+      'Jumlah transaksi doang, BUKAN closing rate — belum ada data "leads offline" buat ukur konversi beneran',
+      null,null,'');
   renderNotaMediaValidasi(d);
   renderAOVKesimpulan(d);
 }

@@ -269,6 +269,7 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
   </div>
+  <div id="nota-media-validasi"></div>
 
   <div class="advisor-panel">
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
@@ -355,7 +356,7 @@ var SHEETS = {
   // SAMA (REPORT V.2), mulai baris 126. A=Tanggal, E=JUMLAH (total
   // Omset Umum+Tukang+Proyek harian). Range dilebarin ke row 200 biar
   // aman nangkep data yang terus bertambah tiap hari.
-  data_pelanggan: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:602747520, sheet:'REPORT V.2', range:'A126:E200', headers:0 },
+  data_pelanggan: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:602747520, sheet:'REPORT V.2', range:'A126:K200', headers:0 },
   // Sheet BARU: OMZET tab — Biaya Iklan per bulan (A=Tahun, B=Bulan, F=Iklan)
   iklan: { id:'1Pv2b04WvHOCtT5Dcd4YvXyn8G3MP5VPbPXEmN5nC6Vc', sheet:'OMZET', range:'A2:F400', headers:0 },
   // Sheet 3: PIVOT col D (tanggal) & E (jumlah transaksi/nota harian) mulai baris 10
@@ -368,7 +369,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v9';
+var CACHE_KEY = 'exec_dash_v10';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -419,13 +420,17 @@ function parseGvizDate(v){
 }
 
 function parseDataPelanggan(table){
-  // A=Tanggal, E=JUMLAH (total Omset Umum+Tukang+Proyek harian).
+  // A=Tanggal, E=JUMLAH (total Omset Umum+Tukang+Proyek harian),
+  // J=Nota Online, K=Nota Offline (tabel "NOTA PER MEDIA", nempel di
+  // baris yang SAMA kayak Data Harian Pelanggan, kolom lebih ke kanan).
   // Pakai pola parsing tanggal yang SAMA kayak parseDealKasir (udah
   // terbukti jalan) — handle Date object asli ATAU teks "DD/MM/YYYY".
   var p=parseTable(table);
   var cols=p.hdrs;
   var colA=cols[0]!==undefined?cols[0]:'A';
   var colE=cols[4]!==undefined?cols[4]:'E';
+  var colJ=cols[9]!==undefined?cols[9]:'J';
+  var colK=cols[10]!==undefined?cols[10]:'K';
   var result=[];
   p.rows.forEach(function(r){
     var dateVal=r[colA];
@@ -443,8 +448,10 @@ function parseDataPelanggan(table){
     }
     if(!dv) return;
     var jumlah=parseNumStr(r[colE]||0);
-    if(jumlah===0) return; // baris belum keisi, skip
-    result.push({date:dv,jumlah:jumlah});
+    var notaOnline=parseNumStr(r[colJ]||0);
+    var notaOffline=parseNumStr(r[colK]||0);
+    if(jumlah===0&&notaOnline===0&&notaOffline===0) return; // baris belum keisi, skip
+    result.push({date:dv,jumlah:jumlah,notaOnline:notaOnline,notaOffline:notaOffline});
   });
   console.log('[Data Pelanggan] baris valid ditemukan:',result.length,'| 3 contoh pertama:',result.slice(0,3));
   return result.sort(function(a,b){return a.date-b.date;});
@@ -854,13 +861,30 @@ function getMonthData(ym){
   // KESIMPULAN B7, udah terbukti bener) sebagai basis, BUKAN
   // "transaksi" (dari data PIVOT lama) yang ternyata sering 0/gak
   // reliable. Ini ngaruh ke closing_rate juga, bukan cuma teks doang.
+  //
+  // UPDATE: offline_tx sekarang pakai DATA BENERAN dicatet (kolom K,
+  // "Nota per Media - Offline"), BUKAN tebakan residual lagi (dulu:
+  // Jumlah Nota - Beli TDK). Kalau data Nota per Media belum ada buat
+  // bulan ini, fallback otomatis balik ke cara lama (residual).
+  var dataPelangganMonth = filterByYM(D.data_pelanggan||[]);
+  var notaOnlineReal = dataPelangganMonth.reduce(function(s,r){return s+(r.notaOnline||0);},0);
+  var notaOfflineReal = dataPelangganMonth.reduce(function(s,r){return s+(r.notaOffline||0);},0);
+  var hasNotaMediaData = dataPelangganMonth.some(function(r){return r.notaOnline||r.notaOffline;});
+
   var beli_tdk = leadM.beli || 0;
-  var offline_tx = Math.max(0, jumlah_nota_card - beli_tdk);
+  var offline_tx = hasNotaMediaData ? notaOfflineReal : Math.max(0, jumlah_nota_card - beli_tdk);
   var total_leads_masuk = leadM.total + offline_tx;
 
   var closing_rate = pct(jumlah_nota_card, total_leads_masuk);
   var cr_online = pct(leadM.beli, leadM.total);
   var cr_offline = offline_tx > 0 ? 100 : 0;
+
+  // ── VALIDASI SILANG — Online+Offline dari tabel Nota per Media,
+  // dicocokin ke Jumlah Nota resmi (KESIMPULAN B7). Kalau beda jauh,
+  // ada channel yang belum kecover di salah satu sumber.
+  var notaMediaTotal = notaOnlineReal + notaOfflineReal;
+  var notaMediaSelisih = hasNotaMediaData ? Math.abs(notaMediaTotal - jumlah_nota_card) : 0;
+  var notaMediaCocok = hasNotaMediaData ? (notaMediaSelisih <= Math.max(2, Math.round(jumlah_nota_card*0.05))) : null;
   var cpl = actual_spend>0&&total_leads_masuk>0 ? Math.round(actual_spend/total_leads_masuk) : 0;
   var achievement_pct = pct(omset_real,target);
   var deal_sales_pct = pct(deal_sales,target);
@@ -879,6 +903,8 @@ function getMonthData(ym){
     achievement_pct:achievement_pct,gap_omzet:gap_omzet,transaksi:transaksi,aov:aov,
     total_leads_masuk:total_leads_masuk,offline_tx:offline_tx,
     closing_rate:closing_rate,cr_online:cr_online,cr_offline:cr_offline,
+    hasNotaMediaData:hasNotaMediaData,notaOnlineReal:notaOnlineReal,notaOfflineReal:notaOfflineReal,
+    notaMediaTotal:notaMediaTotal,notaMediaSelisih:notaMediaSelisih,notaMediaCocok:notaMediaCocok,
     cpl:cpl,roas:roas,mer:mer,target_harian:target_harian,
     ideal_aov:ideal_aov,proyeksi_transaksi:proyeksi_transaksi,
     jumlah_nota_card:jumlah_nota_card,aov_card:aov_card,
@@ -1121,6 +1147,22 @@ function renderMarketingKPIs(d){
   renderProyeksiKPIs(d);
 }
 
+// ── VALIDASI NOTA PER MEDIA — bandingin Online+Offline (dari data
+// beneran dicatet) vs Jumlah Nota resmi (KESIMPULAN B7). Kalau beda
+// jauh, kasih tau — ada kemungkinan channel lain yang belum kecover.
+function renderNotaMediaValidasi(d){
+  var el=document.getElementById('nota-media-validasi');
+  if(!d.hasNotaMediaData){
+    el.innerHTML='';
+    return;
+  }
+  if(d.notaMediaCocok){
+    el.innerHTML='<div style="font-size:10.5px;color:var(--mut);background:var(--card2);border-radius:10px;padding:9px 12px;margin-bottom:14px;line-height:1.6">✅ Validasi: Online ('+d.notaOnlineReal.toLocaleString('id-ID')+') + Offline ('+d.notaOfflineReal.toLocaleString('id-ID')+') = '+d.notaMediaTotal.toLocaleString('id-ID')+' — cocok sama Jumlah Nota resmi ('+d.jumlah_nota_card.toLocaleString('id-ID')+').</div>';
+  } else {
+    el.innerHTML='<div style="font-size:10.5px;color:var(--red);background:var(--red-l);border:1px solid #FECACA;border-radius:10px;padding:9px 12px;margin-bottom:14px;line-height:1.6">⚠️ Selisih terdeteksi: Online+Offline dari tabel Nota per Media = '+d.notaMediaTotal.toLocaleString('id-ID')+', tapi Jumlah Nota resmi (KESIMPULAN B7) = '+d.jumlah_nota_card.toLocaleString('id-ID')+' (beda '+d.notaMediaSelisih.toLocaleString('id-ID')+'). Kemungkinan ada channel closing yang belum kecatet di salah satu sumber — cek manual.</div>';
+  }
+}
+
 function renderAOVKPIs(d){
   document.getElementById('kpi-aov').innerHTML=
     kpiCard('🧾','Jumlah Nota',d.jumlah_nota_card?d.jumlah_nota_card.toLocaleString('id-ID'):'—',
@@ -1130,8 +1172,9 @@ function renderAOVKPIs(d){
     kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
       d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero')+
     kpiCard('🤝','Closing Rate',d.total_leads_masuk>0?d.closing_rate+'%':'—',
-      d.total_leads_masuk>0?d.jumlah_nota_card.toLocaleString('id-ID')+' nota / '+d.total_leads_masuk.toLocaleString('id-ID')+' leads masuk':'Belum ada data leads',
+      d.total_leads_masuk>0?d.jumlah_nota_card.toLocaleString('id-ID')+' nota / '+d.total_leads_masuk.toLocaleString('id-ID')+' leads masuk ('+(d.hasNotaMediaData?'data tercatat':'estimasi')+')':'Belum ada data leads',
       null,null,d.total_leads_masuk>0?(d.closing_rate>=15?'good':d.closing_rate>=8?'warn':'bad'):'');
+  renderNotaMediaValidasi(d);
   renderAOVKesimpulan(d);
 }
 

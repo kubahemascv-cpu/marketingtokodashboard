@@ -878,6 +878,15 @@ function getMonthData(ym){
 
   var closing_rate = pct(jumlah_nota_card, total_leads_masuk);
   var cr_online = pct(leadM.beli, leadM.total);
+
+  // ── BELI ONLINE (versi hitungan) — Jumlah Nota dikurangi Nota
+  // Offline, dibagi Leads TDK. Ini pembilang yang LEBIH akurat dari
+  // status "Beli" manual di TDK (yang rawan lupa di-update CS), soalnya
+  // dua-duanya (Nota & Nota Offline) sama-sama data sistem, bukan input
+  // manual. TDK Beli tetap disimpen buat perbandingan/alarm selisih.
+  var beli_online_hitungan = Math.max(0, jumlah_nota_card - offline_tx);
+  var cr_online_hitungan = pct(beli_online_hitungan, leadM.total);
+  var beliOnlineSelisih = Math.abs(beli_online_hitungan - (leadM.beli||0));
   var cr_offline = offline_tx > 0 ? 100 : 0;
 
   // ── VALIDASI SILANG — Online+Offline dari tabel Nota per Media,
@@ -905,6 +914,7 @@ function getMonthData(ym){
     total_leads_masuk:total_leads_masuk,offline_tx:offline_tx,
     closing_rate:closing_rate,cr_online:cr_online,cr_offline:cr_offline,
     hasNotaMediaData:hasNotaMediaData,notaOnlineReal:notaOnlineReal,notaOfflineReal:notaOfflineReal,
+    beli_online_hitungan:beli_online_hitungan,cr_online_hitungan:cr_online_hitungan,beliOnlineSelisih:beliOnlineSelisih,
     notaMediaTotal:notaMediaTotal,notaMediaSelisih:notaMediaSelisih,notaMediaCocok:notaMediaCocok,
     cpl:cpl,roas:roas,mer:mer,target_harian:target_harian,
     ideal_aov:ideal_aov,proyeksi_transaksi:proyeksi_transaksi,
@@ -1172,9 +1182,9 @@ function renderAOVKPIs(d){
     kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,'')+
     kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
       d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero')+
-    kpiCard('📲','Closing Rate Online',d.leads.total>0?d.cr_online+'%':'—',
-      d.leads.total>0?d.leads.beli.toLocaleString('id-ID')+' beli / '+d.leads.total.toLocaleString('id-ID')+' leads TDK (real konversi)':'Belum ada data leads TDK',
-      null,null,d.leads.total>0?(d.cr_online>=10?'good':d.cr_online>=5?'warn':'bad'):'')+
+    kpiCard('📲','Closing Rate Online',d.leads.total>0?d.cr_online_hitungan+'%':'—',
+      d.leads.total>0?d.beli_online_hitungan.toLocaleString('id-ID')+' beli / '+d.leads.total.toLocaleString('id-ID')+' leads TDK · (Nota−Offline) · TDK bilang '+d.leads.beli.toLocaleString('id-ID')+(d.beliOnlineSelisih>2?' ⚠️ selisih '+d.beliOnlineSelisih:''):'Belum ada data leads TDK',
+      null,null,d.leads.total>0?(d.cr_online_hitungan>=10?'good':d.cr_online_hitungan>=5?'warn':'bad'):'')+
     kpiCard('🏪','Nota Offline (Walk-in)',d.hasNotaMediaData||d.offline_tx?d.offline_tx.toLocaleString('id-ID'):'—',
       'Jumlah transaksi doang, BUKAN closing rate — belum ada data "leads offline" buat ukur konversi beneran',
       null,null,'');

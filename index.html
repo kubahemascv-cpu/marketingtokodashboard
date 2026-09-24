@@ -1241,6 +1241,24 @@ function renderAOVKesimpulan(d){
       body:'Proyeksi udah '+posisiProyeksi+'% dari Target Perusahaan. Pertahanin ritme AOV & volume transaksi yang sekarang.'});
   }
 
+  // Skenario Closing Rate Online — sesuai rule resmi PDF "Closing Rate
+  // New Lead": target ideal 20-25%, standar warna Merah <15% / Kuning
+  // 15-19% / Hijau ≥20%. 3 poin cek kalau di bawah target itu PERSIS
+  // dari PDF, bukan saya karang sendiri.
+  if(d.leads.total>0){
+    var cr=d.cr_online;
+    if(cr>=20){
+      items.push({pri:'good',ico:'✅',title:'Closing Rate Online Sehat',
+        body:'Closing Rate Online '+cr+'% — udah di atas target ideal (20-25%). Lead baru bergerak jadi pembeli dengan baik. Pertahankan cara CS closing yang sekarang.'});
+    } else if(cr>=15){
+      items.push({pri:'warn',ico:'⚠️',title:'Closing Rate Online Mendekati Target',
+        body:'Closing Rate Online '+cr+'% — kuning, mendekati target ideal (20-25%) tapi belum tercapai. Cek: (1) kualitas lead yang masuk, (2) cara CS menawarkan produk, (3) alasan lead tidak jadi beli.'});
+    } else {
+      items.push({pri:'urgent',ico:'🚨',title:'Closing Rate Online di Bawah Target',
+        body:'Closing Rate Online '+cr+'% — merah, di bawah target ideal (20-25%). Wajib cek: (1) kualitas lead yang masuk, (2) cara CS menawarkan produk, (3) alasan lead tidak jadi beli. Fokus: lead baru harus bergerak jadi pembeli.'});
+    }
+  }
+
   el.innerHTML=items.map(function(it){
     return '<div class="advisor-item pri-'+it.pri+'"><div style="font-size:17px;flex-shrink:0">'+it.ico+'</div><div><div style="font-size:12px;font-weight:800;color:var(--txt);margin-bottom:3px">'+esc(it.title)+'</div><div style="font-size:11px;color:var(--txt2);line-height:1.6">'+esc(it.body)+'</div></div></div>';
   }).join('');

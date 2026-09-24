@@ -268,7 +268,6 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
   </div>
   <div id="nota-media-validasi"></div>
 
@@ -1182,13 +1181,12 @@ function renderAOVKPIs(d){
     kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,'')+
     kpiCard('🎯','Ideal AOV (vs Target Perusahaan)',d.ideal_aov_perusahaan?fmt(d.ideal_aov_perusahaan):'—',
       d.proyeksi_transaksi_perusahaan?'Estimasi '+d.proyeksi_transaksi_perusahaan.toLocaleString('id-ID')+' nota s/d akhir bulan':'Butuh data hari kerja',null,null,'hero')+
-    kpiCard('📲','Closing Rate Online',d.leads.total>0?d.cr_online_hitungan+'%':'—',
-      d.leads.total>0?d.beli_online_hitungan.toLocaleString('id-ID')+' beli / '+d.leads.total.toLocaleString('id-ID')+' leads TDK · (Nota−Offline) · TDK bilang '+d.leads.beli.toLocaleString('id-ID')+(d.beliOnlineSelisih>2?' ⚠️ selisih '+d.beliOnlineSelisih:''):'Belum ada data leads TDK',
-      null,null,d.leads.total>0?(d.cr_online_hitungan>=10?'good':d.cr_online_hitungan>=5?'warn':'bad'):'')+
-    kpiCard('🏪','Nota Offline (Walk-in)',d.hasNotaMediaData||d.offline_tx?d.offline_tx.toLocaleString('id-ID'):'—',
-      'Jumlah transaksi doang, BUKAN closing rate — belum ada data "leads offline" buat ukur konversi beneran',
-      null,null,'');
-  renderNotaMediaValidasi(d);
+    kpiCard('📲','Closing Rate Online',d.leads.total>0?d.cr_online+'%':'—',
+      d.leads.total>0?d.leads.beli.toLocaleString('id-ID')+' Total Leads Online Beli / '+d.leads.total.toLocaleString('id-ID')+' Total Leads Online (TDK)':'Belum ada data leads TDK',
+      null,null,d.leads.total>0?(d.cr_online>=20?'good':d.cr_online>=15?'warn':'bad'):'');
+  // renderNotaMediaValidasi(d); — disembunyiin sementara, nempel sama
+  // konsep "data Offline" yang belum siap jadi metrik resmi (bakal
+  // dipasang lagi bareng Closing Rate Offline nanti)
   renderAOVKesimpulan(d);
 }
 

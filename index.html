@@ -369,7 +369,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v10';
+var CACHE_KEY = 'exec_dash_v11';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -662,7 +662,12 @@ function parsePivotOmzet(table){
 }
 
 function parseLeads(table){
-  // col I (idx 8) = Beli/Tanya, col K (idx 10) = Follow Up/Arsip, col F (idx 5) = date
+  // col G (idx 6) = Kategori Online/Offline, col I (idx 8) = Beli/Tanya,
+  // col K (idx 10) = Follow Up/Arsip, col F (idx 5) = date.
+  // byMonth SEKARANG cuma ngitung yang Online (buat Closing Rate Online
+  // di TDK, sesuai instruksi) — Offline TETEP dihitung terpisah
+  // (byMonthOffline) biar siap dipakai pas Closing Rate Offline resmi
+  // ditambahin nanti, TAPI gak dipakai/ditampilin di mana pun sekarang.
   var p=parseTable(table);
   var cols=p.hdrs;
   var total=p.rows.filter(function(r){
@@ -670,12 +675,16 @@ function parseLeads(table){
     return cols.some(function(c){return r[c]!=='';});
   });
   var byMonth={};
+  var byMonthOffline={};
   total.forEach(function(r){
     var d=r[cols[5]];
     var ym='unknown';
     if(d instanceof Date){ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
-    if(!byMonth[ym])byMonth[ym]={total:0,beli:0,tanya:0,ttb:0,follow_up:0,arsip:0};
-    var m=byMonth[ym];
+    var kategori=String(r[cols[6]]||'').toLowerCase().trim();
+    var isOffline=kategori.includes('offline');
+    var target=isOffline?byMonthOffline:byMonth;
+    if(!target[ym])target[ym]={total:0,beli:0,tanya:0,ttb:0,follow_up:0,arsip:0};
+    var m=target[ym];
     m.total++;
     var si=String(r[cols[8]]||'').toLowerCase().trim();
     var sk=String(r[cols[10]]||'').toLowerCase().trim();
@@ -685,7 +694,8 @@ function parseLeads(table){
     if(sk.includes('follow')||/^fu$/.test(sk))m.follow_up++;
     else if(sk.includes('arsip'))m.arsip++;
   });
-  return{byMonth:byMonth,total:total.length,cols:cols};
+  console.log('[Leads TDK] Kolom G (kategori) — contoh 5 baris pertama:',total.slice(0,5).map(function(r){return r[cols[6]];}),'| Online bulan ini akan dihitung dari sini.');
+  return{byMonth:byMonth,byMonthOffline:byMonthOffline,total:total.length,cols:cols};
 }
 
 // ── STATE ────────────────────────────────────────────

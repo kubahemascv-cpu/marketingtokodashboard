@@ -369,7 +369,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v11';
+var CACHE_KEY = 'exec_dash_v12';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -571,10 +571,10 @@ function parseKesimpulanSource(table){
     // ngambil isi row 8 (AOV) — artinya 1 baris di atas (kemungkinan
     // row 1 kosong) keskip sama Google, geser semua baris ke bawah
     // naik 1 posisi. Makanya offset dasarnya -2 (bukan -1) dari nomor
-    // baris sheet aslinya.
-    // Baris 23 (Deal Sales) butuh offset TAMBAHAN -2 lagi (total -4) —
-    // artinya ada 2 baris kosong LAIN yang keskip di antara baris 8
-    // dan baris 23, terpisah dari kompaksi 1-baris di awal tadi.
+    // baris sheet aslinya. Udah kebukti konsisten buat row 3/5/7/8.
+    // extraOffset disediain kalau nanti ada baris LAIN yang butuh
+    // offset tambahan (kayak kasus row 23 dulu), tinggal dipanggil
+    // getRow(rowNum, extraOffset).
     var idx=rowNum-2-(extraOffset||0);
     return p.rows[idx]?parseNumStr(p.rows[idx][colB]||0):0;
   }
@@ -582,9 +582,9 @@ function parseKesimpulanSource(table){
     hari_kerja: getRow(3),
     jumlah_nota: getRow(7),
     aov: getRow(8),
-    deal_sales: getRow(23,2),
+    deal_sales: getRow(5),
   };
-  console.log('[Kesimpulan] Dipakai sekarang (row3/7/8 → index1/5/6, offset -2; row23 → index19, offset -4):','hari_kerja=',result.hari_kerja,'jumlah_nota=',result.jumlah_nota,'aov=',result.aov,'deal_sales=',result.deal_sales);
+  console.log('[Kesimpulan] Dipakai sekarang (row3/5/7/8 → offset -2 konsisten):','hari_kerja=',result.hari_kerja,'jumlah_nota=',result.jumlah_nota,'aov=',result.aov,'deal_sales=',result.deal_sales);
   return result;
 }
 
@@ -701,7 +701,7 @@ function parseLeads(table){
 // ── STATE ────────────────────────────────────────────
 var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
-  kesimpulan:{hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0}, // dari sheet KESIMPULAN (spreadsheet OMZET/Iklan) B3/B7/B8/B23
+  kesimpulan:{hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0}, // dari sheet KESIMPULAN (spreadsheet OMZET/Iklan) B3/B5/B7/B8
   forecast_bulanan:{hari:0,target_bulan:0,found:false}, // Target Perusahaan resmi per bulan (tabel FORECAST)
   deal_kasir:[],   // tabel harian Deal vs Kasir (REPORT V.2 A86:C120) — dipakai Tren Harian
   data_pelanggan:[], // Data Harian Pelanggan (REPORT V.2 A126:E200) — kolom JUMLAH, dipakai Tren Harian & Per Pekan
@@ -1145,7 +1145,7 @@ function renderKPIs(d){
   // Deal Sales (bukan Omzet Real lagi), sesuai keputusan user.
   document.getElementById('kpi-omzet').innerHTML=
     kpiCard('🎯','Target Omzet',fmt(d.target),'Bulan '+ymLabel(d.ym),null,null,'hero')+
-    kpiCard('🤝','Deal Sales',fmt(d.deal_sales),'Sheet KESIMPULAN (B23)',null,null,'')+
+    kpiCard('🤝','Deal Sales',fmt(d.deal_sales),'Sheet KESIMPULAN (B5)',null,null,'')+
     kpiCard('📈','Pencapaian Deal Sales',dap+'%',fmt(d.deal_sales)+' / '+fmt(d.target),null,dap,dacls)+
     kpiCard('💸','Biaya Iklan',d.actual_spend?fmt(d.actual_spend):'—','Bulan '+ymLabel(d.ym),null,null,'')+
     kpiCard('📡','ROAS',d.roas?d.roas+'x':'—','Deal Sales ÷ Biaya Iklan',

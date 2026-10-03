@@ -1160,9 +1160,9 @@ function renderMarketingKPIs(d){
   document.getElementById('kpi-marketing').innerHTML=
     kpiCard('💳','Cost per Lead',d.cpl?fmt(d.cpl):'—',d.actual_spend?'dari Rp '+d.actual_spend.toLocaleString('id-ID')+' spend':'Biaya iklan belum ada',null,null,'')+
     kpiCard('📈','Target Harian',d.target_harian?fmt(d.target_harian):'—','Per hari kerja',null,null,'')+
-    kpiCard('🔄','Real Harian Avg',d.hari_kerja>0?fmt(Math.round(d.omset_real/d.hari_kerja)):'—',
-      d.hari_kerja>0?'vs target '+fmt(d.target_harian):'',null,
-      d.hari_kerja>0&&d.target_harian>0?pct(d.omset_real/d.hari_kerja,d.target_harian):null,'');
+    kpiCard('🔄','Real Harian Avg',d.hari_kerja>0?fmt(Math.round(d.deal_sales/d.hari_kerja)):'—',
+      d.hari_kerja>0?'vs target '+fmt(d.target_harian)+' (Deal Sales B5 ÷ Hari Kerja)':'',null,
+      d.hari_kerja>0&&d.target_harian>0?pct(d.deal_sales/d.hari_kerja,d.target_harian):null,'');
   renderAOVKPIs(d);
   renderProyeksiKPIs(d);
 }

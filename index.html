@@ -691,13 +691,14 @@ function showBanner(type,msg){
 }
 
 // ── KPI CARD BUILDER ─────────────────────────────────
-function kpiCard(ico,lbl,val,sub,delta,prog,colorClass){
+function kpiCard(ico,lbl,val,sub,delta,prog,colorClass,sub2){
   var pc=colorClass||'';
   var h='<div class="kpi-card '+(pc)+'">'
     +'<span class="kpi-ico">'+ico+'</span>'
     +'<span class="kpi-lbl">'+lbl+'</span>'
     +'<span class="kpi-val">'+esc(String(val))+'</span>';
   if(sub)h+='<span class="kpi-sub">'+esc(String(sub))+'</span>';
+  if(sub2)h+='<span class="kpi-sub" style="margin-top:2px">'+esc(String(sub2))+'</span>';
   if(delta){var dcls=delta.startsWith('+')&&!delta.includes('—')?'up':delta.startsWith('-')?'dn':'neu';h+='<span class="kpi-delta '+dcls+'">'+esc(delta)+'</span>';}
   if(prog!=null){var pv=Math.min(100,Math.max(0,+prog));var pc2=pv>=100?'#16A34A':pv>=80?'#F5C518':'#DC2626';h+='<div class="kpi-prog"><div class="kpi-prog-fill" style="width:'+pv+'%;background:'+pc2+'"></div></div>';}
   h+='</div>';
@@ -1087,7 +1088,7 @@ function renderKPIs(d){
   // ROW 1: Target vs Deal Sales — Gap Omzet & ROAS sekarang berbasis
   // Deal Sales (bukan Omzet Real lagi), sesuai keputusan user.
   document.getElementById('kpi-omzet').innerHTML=
-    kpiCard('🎯','Target Omzet',fmt(d.target),'Bulan '+ymLabel(d.ym),null,null,'hero')+
+    kpiCard('🎯','Target Omzet',fmt(d.target),'Bulan '+ymLabel(d.ym),null,null,'hero',d.hari_kerja>0?'Hari Kerja: '+d.hari_kerja+' hari':'Hari Kerja: —')+
     kpiCard('🤝','Deal Sales',fmt(d.deal_sales),'Sheet KESIMPULAN (B23)',null,null,'')+
     kpiCard('📈','Pencapaian Deal Sales',dap+'%',fmt(d.deal_sales)+' / '+fmt(d.target),null,dap,dacls)+
     kpiCard('💸','Biaya Iklan',d.actual_spend?fmt(d.actual_spend):'—','Bulan '+ymLabel(d.ym),null,null,'')+
@@ -1096,8 +1097,8 @@ function renderKPIs(d){
     kpiCard('📉','Gap Omzet',fmt(Math.abs(d.gap_omzet)),
       d.gap_omzet<=0?'✅ Deal Sales sudah melampaui target':'Sisa yang harus dicapai (vs Deal Sales)',
       d.gap_omzet<=0?'▲ +'+fmt(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad')+
-    kpiCard('🤝','Proyeksi Deal Sales',d.proyeksi_deal?fmt(d.proyeksi_deal):'—',
-      dpPct!==null?dpPct+'% dari target (sudah ×95% toleransi telat bayar)':'Butuh data hari kerja',null,null,dpCls);
+    kpiCard('🔮','Proyeksi Akhir Bulan',d.proyeksi_deal?fmt(d.proyeksi_deal):'—',
+      dpPct!==null?dpPct+'% dari target (sudah ×95% toleransi telat bayar)':'Butuh data hari kerja',null,null,dpCls,d.hari_aktif>0?'Hari Aktif: '+d.hari_aktif+' hari':'Hari Aktif: —');
 }
 
 // ── MARKETING KPI ROW (sisa: Cost per Lead, Target Harian, Real Harian) ──

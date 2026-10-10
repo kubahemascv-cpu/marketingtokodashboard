@@ -340,7 +340,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v13';
+var CACHE_KEY = 'exec_dash_v15';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -502,7 +502,8 @@ function parseKesimpulanSource(table){
   function getNumRaw(col,rowNum,extra){ var v=cell(col,rowNum,extra); if(typeof v==='number')return v; var n=parseFloat(String(v||'').replace(',','.')); return isNaN(n)?0:n; }
   function getTxt(col,rowNum,extra){ var v=cell(col,rowNum,extra); return (v===undefined||v===null)?'':String(v).trim(); }
   var result={
-    hari_kerja: getNum(colD,24,2),
+    hari_kerja: getNum(colB,21,2) || getNum(colB,3),
+    hari_kerja_b3: getNum(colB,3),
     aov: getNum(colB,8),
     deal_sales: getNum(colB,23,2),
     target_omzet: getNum(colB,24,2),
@@ -510,7 +511,7 @@ function parseKesimpulanSource(table){
     nota_ideal_c26: getNumRaw(colC,26,2),
     ideal_aov: getNum(colC,25,2),
   };
-  console.log('[Kesimpulan] Dipakai:',result);
+  console.log('[Kesimpulan] Dipakai:',result,'| Hari Kerja D24='+result.hari_kerja+' (kalau 0 → fallback B3='+result.hari_kerja_b3+')');
   return result;
 }
 
@@ -627,7 +628,7 @@ function parseLeads(table){
 // ── STATE ────────────────────────────────────────────
 var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
-  kesimpulan:{hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0}, // sheet KESIMPULAN: D24, B8, B23, B24, B26, C25, C26
+  kesimpulan:{hari_kerja:0,hari_kerja_b3:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0}, // sheet KESIMPULAN: B21 (hari kerja, fallback B3), B8, B23, B24, B26, C25, C26
   forecast_bulanan:{hari:0,target_bulan:0,found:false}, // Target Perusahaan resmi per bulan (tabel FORECAST)
   data_pelanggan:[], // Data Harian Pelanggan (REPORT V.2 A126:E200) — kolom JUMLAH, dipakai Tren Harian & Per Pekan
   iklan:[],        // biaya iklan per bulan (sheet OMZET, kolom F)
@@ -660,7 +661,7 @@ function loadData(force){
 
   Promise.allSettled([
     gviz(SHEETS.report_now).then(parseReportNow).then(function(v){D.report_now=v;}),
-    gviz(SHEETS.kesimpulan_source).then(parseKesimpulanSource).then(function(v){D.kesimpulan=v;}).catch(function(err){console.error('[Kesimpulan] GAGAL:',err);D.kesimpulan={hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0};}),
+    gviz(SHEETS.kesimpulan_source).then(parseKesimpulanSource).then(function(v){D.kesimpulan=v;}).catch(function(err){console.error('[Kesimpulan] GAGAL:',err);D.kesimpulan={hari_kerja:0,hari_kerja_b3:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0};}),
     gviz(SHEETS.forecast_bulanan).then(parseForecastBulanan).then(function(v){D.forecast_bulanan=v;}).catch(function(err){console.error('[Forecast Bulanan] GAGAL:',err);D.forecast_bulanan={hari:0,target_bulan:0,found:false};}),
     gviz(SHEETS.data_pelanggan).then(parseDataPelanggan).then(function(v){D.data_pelanggan=v;}).catch(function(err){console.error('[Data Pelanggan] GAGAL:',err);D.data_pelanggan=[];}),
     gviz(SHEETS.iklan).then(parseIklan).then(function(v){D.iklan=v;}),
@@ -718,7 +719,7 @@ function getMonthData(ym){
   var target     = D.kesimpulan.target_omzet || rn.forecast || 0;
   var omset_real = rn.omset_real || 0;
   var deal_sales = D.kesimpulan.deal_sales || 0;
-  var hari_kerja = D.kesimpulan.hari_kerja || rn.hari_kerja || 0;
+  var hari_kerja = D.kesimpulan.hari_kerja || D.kesimpulan.hari_kerja_b3 || rn.hari_kerja || 0;
   var hari_aktif = rn.hari_aktif || 0;
   var actual_spend = iklanRow.biaya_iklan || 0;
   var forecast   = rn.forecast || 0;

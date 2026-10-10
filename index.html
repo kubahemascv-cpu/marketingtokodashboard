@@ -60,6 +60,9 @@ body.dark .topbar{background:#0D0E12;border-bottom:1px solid var(--bdr)}
 /* ── SECTION LABEL ── */
 .slbl{display:block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--mut);padding:22px 0 10px}
 .slbl:first-child{padding-top:0}
+.page-tabs{display:flex;gap:8px;margin-bottom:16px;border-bottom:1.5px solid var(--bdr);padding-bottom:0}
+.ptab{font-family:var(--font);font-size:12.5px;font-weight:700;padding:10px 18px;border:none;background:none;color:var(--mut);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.ptab.active{color:var(--txt);border-bottom-color:var(--yl)}
 
 /* ── STATUS BANNER ── */
 .status-banner{border-radius:var(--r);padding:11px 16px;margin-bottom:22px;display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:500;line-height:1.5}
@@ -216,8 +219,14 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <span>Mengambil data dari 4 Google Sheets...</span>
   </div>
 
-  <!-- KPI ROW 1: OMZET + BIAYA IKLAN + ROAS (card utama) -->
-  <span class="slbl">📊 Target vs Realisasi Omzet</span>
+  <div class="page-tabs">
+    <button class="ptab active" id="ptab-1" onclick="showPage(1)">📊 Report CEO</button>
+    <button class="ptab" id="ptab-2" onclick="showPage(2)">🔎 Breakdown Data</button>
+  </div>
+
+  <div class="page" id="page-1">
+  <!-- KPI ROW 1 -->
+  <span class="slbl">📊 Target vs Proyeksi</span>
   <div class="kpi-grid" id="kpi-omzet">
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
@@ -238,17 +247,11 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <div id="ads-advisor"></div>
   </div>
 
-  <!-- EFISIENSI MARKETING (sisa dari Biaya Marketing & ROAS, ROAS sudah pindah ke atas) -->
-  <span class="slbl">📈 Efisiensi Marketing</span>
-  <div class="kpi-grid" id="kpi-marketing">
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-  </div>
-
   <!-- CHARTS + DIAGNOSA PER SECTION -->
-  <div id="note-marketing"></div>
 
+  </div><!-- /page-1 -->
+
+  <div class="page" id="page-2" style="display:none">
   <span class="slbl">🧾 Transaksi & Average Order Value</span>
   <div class="kpi-grid" id="kpi-aov">
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
@@ -301,6 +304,8 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <div class="diag-item info"><div class="diag-ico">⏳</div><div><div class="diag-title">Memuat data...</div><div class="diag-body">Diagnosa akan muncul setelah semua data berhasil dimuat.</div></div></div>
   </div>
 
+  </div><!-- /page-2 -->
+
 </div><!-- /main -->
 
 <script>
@@ -313,7 +318,7 @@ var SHEETS = {
   // kira "KESIMPULAN" itu di spreadsheet OMZET/Iklan yang beda —
   // ternyata itu 1 FILE yang sama kayak report_now, cuma TAB-nya beda.
   // Pakai gid (bukan nama) biar lebih pasti kena tab yang tepat.
-  kesimpulan_source: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:1834609864, sheet:'KESIMPULAN', range:'A1:C30', headers:0 },
+  kesimpulan_source: { id:'1n9Mp66i3JwJE6hdV3jevhOw8EOa1b7Lo8FvBegtsTo4', gid:1834609864, sheet:'KESIMPULAN', range:'A1:D30', headers:0 },
   // Sheet BARU: "FORECAST" — tabel Target Perusahaan per bulan
   // (ditetapin manajemen dari awal, BUKAN hasil hitungan sistem kayak
   // sumber report_now). A=Bulan, B=Hari, C=Target/Hari, D=Target/Bulan.
@@ -476,12 +481,13 @@ function parseKesimpulanSource(table){
   var colA=cols[0]!==undefined?cols[0]:'A';
   var colB=cols[1]!==undefined?cols[1]:'B';
   var colC=cols[2]!==undefined?cols[2]:'C';
+  var colD=cols[3]!==undefined?cols[3]:'D';
 
   // Log JELAS: index array vs isi kolom A, B, C — buat verifikasi
   // posisi tiap cell kalau angka di dashboard ada yang meleset.
   console.log('[Kesimpulan] === DIAGNOSTIK MENTAH ===');
   p.rows.forEach(function(r,i){
-    console.log('  index['+i+'] → A: "'+(r[colA]!==undefined?r[colA]:'')+'" | B: "'+(r[colB]!==undefined?r[colB]:'')+'" | C: "'+(r[colC]!==undefined?r[colC]:'')+'"');
+    console.log('  index['+i+'] → A: "'+(r[colA]!==undefined?r[colA]:'')+'" | B: "'+(r[colB]!==undefined?r[colB]:'')+'" | C: "'+(r[colC]!==undefined?r[colC]:'')+'" | D: "'+(r[colD]!==undefined?r[colD]:'')+'"');
   });
 
   // gviz melompati baris kosong, jadi index array != nomor baris sheet.
@@ -493,14 +499,15 @@ function parseKesimpulanSource(table){
     return p.rows[idx]?p.rows[idx][col]:'';
   }
   function getNum(col,rowNum,extra){ return parseNumStr(cell(col,rowNum,extra)||0); }
+  function getNumRaw(col,rowNum,extra){ var v=cell(col,rowNum,extra); if(typeof v==='number')return v; var n=parseFloat(String(v||'').replace(',','.')); return isNaN(n)?0:n; }
   function getTxt(col,rowNum,extra){ var v=cell(col,rowNum,extra); return (v===undefined||v===null)?'':String(v).trim(); }
   var result={
-    hari_kerja: getNum(colB,3),
+    hari_kerja: getNum(colD,24,2),
     aov: getNum(colB,8),
     deal_sales: getNum(colB,23,2),
     target_omzet: getNum(colB,24,2),
     jumlah_nota: getNum(colB,26,2),
-    nota_note: getTxt(colC,26,2),
+    nota_ideal_c26: getNumRaw(colC,26,2),
     ideal_aov: getNum(colC,25,2),
   };
   console.log('[Kesimpulan] Dipakai:',result);
@@ -620,7 +627,7 @@ function parseLeads(table){
 // ── STATE ────────────────────────────────────────────
 var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
-  kesimpulan:{hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_note:'',ideal_aov:0}, // sheet KESIMPULAN: B3, B8, B23, B24, B26, C25, C26
+  kesimpulan:{hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0}, // sheet KESIMPULAN: D24, B8, B23, B24, B26, C25, C26
   forecast_bulanan:{hari:0,target_bulan:0,found:false}, // Target Perusahaan resmi per bulan (tabel FORECAST)
   data_pelanggan:[], // Data Harian Pelanggan (REPORT V.2 A126:E200) — kolom JUMLAH, dipakai Tren Harian & Per Pekan
   iklan:[],        // biaya iklan per bulan (sheet OMZET, kolom F)
@@ -653,7 +660,7 @@ function loadData(force){
 
   Promise.allSettled([
     gviz(SHEETS.report_now).then(parseReportNow).then(function(v){D.report_now=v;}),
-    gviz(SHEETS.kesimpulan_source).then(parseKesimpulanSource).then(function(v){D.kesimpulan=v;}).catch(function(err){console.error('[Kesimpulan] GAGAL:',err);D.kesimpulan={hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_note:'',ideal_aov:0};}),
+    gviz(SHEETS.kesimpulan_source).then(parseKesimpulanSource).then(function(v){D.kesimpulan=v;}).catch(function(err){console.error('[Kesimpulan] GAGAL:',err);D.kesimpulan={hari_kerja:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0};}),
     gviz(SHEETS.forecast_bulanan).then(parseForecastBulanan).then(function(v){D.forecast_bulanan=v;}).catch(function(err){console.error('[Forecast Bulanan] GAGAL:',err);D.forecast_bulanan={hari:0,target_bulan:0,found:false};}),
     gviz(SHEETS.data_pelanggan).then(parseDataPelanggan).then(function(v){D.data_pelanggan=v;}).catch(function(err){console.error('[Data Pelanggan] GAGAL:',err);D.data_pelanggan=[];}),
     gviz(SHEETS.iklan).then(parseIklan).then(function(v){D.iklan=v;}),
@@ -741,7 +748,7 @@ function getMonthData(ym){
   // biar transaksi/aov yang lama (dipakai closing_rate & Diagnosa
   // Otomatis di bawah) TETAP JALAN seperti biasa, gak kesenggol.
   var jumlah_nota_card = D.kesimpulan.jumlah_nota || 0;
-  var nota_note_card = D.kesimpulan.nota_note || '';
+  var nota_ideal_c26 = Math.ceil(D.kesimpulan.nota_ideal_c26 || 0);
   var ideal_aov_card = D.kesimpulan.ideal_aov || 0;
   var aov_card = D.kesimpulan.aov || 0;
 
@@ -846,7 +853,7 @@ function getMonthData(ym){
     notaMediaTotal:notaMediaTotal,notaMediaSelisih:notaMediaSelisih,notaMediaCocok:notaMediaCocok,
     cpl:cpl,roas:roas,mer:mer,target_harian:target_harian,
     ideal_aov:ideal_aov,proyeksi_transaksi:proyeksi_transaksi,
-    jumlah_nota_card:jumlah_nota_card,nota_note_card:nota_note_card,ideal_aov_card:ideal_aov_card,aov_card:aov_card,
+    jumlah_nota_card:jumlah_nota_card,nota_ideal_c26:nota_ideal_c26,ideal_aov_card:ideal_aov_card,aov_card:aov_card,
     proyeksi_omzet:proyeksi_omzet,proyeksi_deal:proyeksi_deal,
     target_perusahaan:target_perusahaan,hari_aktif_perusahaan:hari_aktif_perusahaan,
     posisi_sekarang_pct:posisi_sekarang_pct,posisi_proyeksi_pct:posisi_proyeksi_pct,
@@ -930,7 +937,6 @@ function renderSectionNotes(d){
     }
   }
 
-  document.getElementById('note-marketing').innerHTML=n3;
   document.getElementById('note-chart').innerHTML=n4;
 
   // ── 5. DONUT Kol I — Intensi Leads ─────────────────
@@ -974,6 +980,23 @@ function renderSectionNotes(d){
   // dihapus) — nL1/nL2 dibiarin sebagai teks yang dihitung tapi gak
   // ditampilin ke mana-mana, aman gak dipanggil.
 }
+
+// ── HALAMAN: 1 = Report CEO, 2 = Breakdown Data ──
+function showPage(n){
+  n = n===2?2:1;
+  document.getElementById('page-1').style.display = n===1?'block':'none';
+  document.getElementById('page-2').style.display = n===2?'block':'none';
+  document.getElementById('ptab-1').classList.toggle('active',n===1);
+  document.getElementById('ptab-2').classList.toggle('active',n===2);
+  try{localStorage.setItem('exec_dash_page',String(n));}catch(e){}
+  // chart yang dibuat saat halaman tersembunyi perlu di-resize
+  try{
+    var ids=['chart-daily','chart-weekly'];
+    ids.forEach(function(id){var el=document.getElementById(id);var c=el&&Chart.getChart(el);if(c)c.resize();});
+  }catch(e){}
+  window.scrollTo(0,0);
+}
+(function(){var n=1;try{n=parseInt(localStorage.getItem('exec_dash_page'),10)||1;}catch(e){} document.addEventListener('DOMContentLoaded',function(){showPage(n);});})();
 
 // ── RENDER ALL ────────────────────────────────────────
 function renderAll(){
@@ -1078,12 +1101,6 @@ function renderKPIs(d){
 
 // ── MARKETING KPI ROW (sisa: Cost per Lead, Target Harian, Real Harian) ──
 function renderMarketingKPIs(d){
-  document.getElementById('kpi-marketing').innerHTML=
-    kpiCard('💳','Cost per Lead',d.cpl?fmt(d.cpl):'—',d.actual_spend?'dari Rp '+d.actual_spend.toLocaleString('id-ID')+' spend':'Biaya iklan belum ada',null,null,'')+
-    kpiCard('📈','Target Harian',d.target_harian?fmt(d.target_harian):'—','Per hari kerja',null,null,'')+
-    kpiCard('🔄','Real Harian Avg',d.hari_kerja>0?fmt(Math.round(d.deal_sales/d.hari_kerja)):'—',
-      d.hari_kerja>0?'vs target '+fmt(d.target_harian)+' (Deal Sales B23 ÷ Hari Kerja)':'',null,
-      d.hari_kerja>0&&d.target_harian>0?pct(d.deal_sales/d.hari_kerja,d.target_harian):null,'');
   renderAOVKPIs(d);
   renderTargetPerusahaanKPIs(d);
 }
@@ -1107,7 +1124,8 @@ function renderNotaMediaValidasi(d){
 function renderAOVKPIs(d){
   document.getElementById('kpi-aov').innerHTML=
     kpiCard('🧾','Jumlah Nota',d.jumlah_nota_card?d.jumlah_nota_card.toLocaleString('id-ID'):'—',
-      d.nota_note_card||('Bulan '+ymLabel(d.ym)),null,null,'')+
+      d.nota_ideal_c26?('Jumlah Nota Ideal adalah '+d.nota_ideal_c26.toLocaleString('id-ID')+' → '+(d.jumlah_nota_card>=d.nota_ideal_c26?'✅ lebih '+(d.jumlah_nota_card-d.nota_ideal_c26).toLocaleString('id-ID')+' nota dari ideal':'⚠️ kurang '+(d.nota_ideal_c26-d.jumlah_nota_card).toLocaleString('id-ID')+' nota dari ideal')):('Bulan '+ymLabel(d.ym)),
+      null,null,d.nota_ideal_c26&&d.jumlah_nota_card?(d.jumlah_nota_card>=d.nota_ideal_c26?'good':'bad'):'')+
     kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,'')+
     kpiCard('🎯','Ideal AOV',d.ideal_aov_card?fmt(d.ideal_aov_card):'—','Sheet KESIMPULAN (C25)',null,null,'hero')+
     kpiCard('📲','Closing Rate Online',d.leads.total>0?d.cr_online+'%':'—',

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Executive Marketing Dashboard — Toko</title>
-<meta name="theme-color" content="#C89B00">
+<meta name="theme-color" content="#FFC72C">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,20 +13,20 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --yl:#F5C518;--yl-d:#C89B00;--yl-l:#FFFBE6;--yl-b:#FFE082;
-  --ch:#1C1E26;--ch2:#252830;--ch3:#2D3142;
-  --bg:#F5F5F0;--bg2:#ECEAE3;--card:#FFFFFF;--card2:#F9F9F6;
-  --txt:#1C1E26;--txt2:#3A3D4A;--mut:#7A7E8A;--bdr:#E0DED6;
+  --yl:#FFC72C;--yl-d:#B98700;--yl-l:#FFF6D6;--yl-b:#FFE083;
+  --ch:#1F2128;--ch2:#292C35;--ch3:#343842;
+  --bg:#F6F6F3;--bg2:#EEEEE9;--card:#FFFFFF;--card2:#FAFAF8;
+  --txt:#1F2128;--txt2:#41454F;--mut:#80848F;--bdr:#E9E8E2;
   --grn:#16A34A;--grn-l:#F0FDF4;--red:#DC2626;--red-l:#FEF2F2;
   --blue:#1877F2;--blue-l:#EFF6FF;
-  --shd:0 2px 12px rgba(0,0,0,.07);--shd2:0 6px 24px rgba(0,0,0,.11);
-  --font:'Poppins',-apple-system,sans-serif;--r:14px;
+  --shd:0 1px 2px rgba(31,33,40,.04),0 6px 20px rgba(31,33,40,.05);--shd2:0 2px 4px rgba(31,33,40,.05),0 14px 34px rgba(31,33,40,.10);
+  --font:'Plus Jakarta Sans',-apple-system,sans-serif;--r:18px;
 }
 body.dark{
   --bg:#13141A;--bg2:#1C1E26;--card:#1E2028;--card2:#252830;
@@ -137,26 +137,6 @@ body.dark .kpi-card.hero{background:#0D0E12}
 .chart-badge{font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--yl-l);color:var(--yl-d)}
 canvas{max-height:260px;width:100%!important}
 
-/* ── DIAGNOSE PANEL ── */
-.diag-grid{display:flex;flex-direction:column;gap:10px}
-.diag-item{border-radius:var(--r);padding:13px 15px;border:1px solid;display:flex;gap:12px;align-items:flex-start}
-.diag-item.danger{background:var(--red-l);border-color:#FECACA}
-.diag-item.warn{background:#FFFBEB;border-color:#FDE68A}
-.diag-item.ok{background:var(--grn-l);border-color:#BBF7D0}
-.diag-item.info{background:var(--blue-l);border-color:#BFDBFE}
-body.dark .diag-item.danger{background:#2A0808;border-color:#7F1D1D}
-body.dark .diag-item.warn{background:#292200;border-color:#7C5800}
-body.dark .diag-item.ok{background:#0D2818;border-color:#14532D}
-body.dark .diag-item.info{background:#0A1628;border-color:#1D3A6E}
-.diag-ico{font-size:18px;flex-shrink:0;margin-top:1px}
-.diag-title{font-size:12.5px;font-weight:700;margin-bottom:3px}
-.diag-item.danger .diag-title{color:var(--red)}
-.diag-item.warn .diag-title{color:#92400E}
-.diag-item.ok .diag-title{color:#15803D}
-.diag-item.info .diag-title{color:#1D4ED8}
-body.dark .diag-item.warn .diag-title{color:#FCD34D}
-.diag-body{font-size:11px;line-height:1.7;color:var(--txt2)}
-
 /* ── DATA TABLE ── */
 .tbl-box{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:var(--shd);border:1px solid var(--bdr);overflow-x:auto}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
@@ -183,6 +163,83 @@ body.dark .sec-note.bad{background:#2A0808;border-color:#7F1D1D;color:#F87171}
 body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
 .empty-box{text-align:center;padding:30px;color:var(--mut);font-size:12px}
 .loader-spin{display:inline-block;width:18px;height:18px;border:2px solid var(--bdr);border-top-color:var(--yl);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+
+/* ═══ SKIN v2 — Modern · Yellow / Charcoal / White ═══ */
+body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.topbar{background:rgba(255,255,255,.86);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--bdr);box-shadow:none;padding:12px 24px 0}
+body.dark .topbar{background:rgba(19,20,26,.86);border-bottom:1px solid var(--bdr)}
+.topbar-row1{padding-bottom:8px}
+.topbar-row2{border-top:none;padding:0 0 12px}
+.brand-logo{width:40px;height:40px;border-radius:12px;background:var(--yl);color:var(--ch);font-size:14px;font-weight:800;box-shadow:0 4px 12px rgba(255,199,44,.45)}
+.brand-name{color:var(--txt);font-size:15px;font-weight:800;letter-spacing:-.01em}
+.brand-sub{color:var(--mut);font-size:11px}
+.tbtn,.month-sel,.month-now-lbl{border:1px solid var(--bdr);background:var(--card);color:var(--txt2);border-radius:999px;box-shadow:0 1px 2px rgba(31,33,40,.04)}
+.tbtn:hover{border-color:var(--yl);color:var(--txt);background:var(--yl-l)}
+.tbtn.active{background:var(--ch);border-color:var(--ch);color:#fff}
+.month-now-lbl{background:var(--ch);border-color:var(--ch);color:var(--yl)}
+.update-badge{color:var(--mut)}
+.main{padding:26px 24px 56px}
+
+.page-tabs{display:inline-flex;gap:4px;padding:4px;background:var(--bg2);border-radius:999px;border:none;margin-bottom:22px}
+.ptab{border-radius:999px;padding:9px 20px;margin:0;border:none;font-size:12.5px;color:var(--mut);transition:all .18s}
+.ptab:hover{color:var(--txt)}
+.ptab.active{background:var(--ch);color:var(--yl);box-shadow:0 2px 8px rgba(31,33,40,.22)}
+
+.slbl{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:none;color:var(--txt);padding:30px 0 14px}
+.slbl::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--yl);flex-shrink:0}
+.page > .slbl:first-child{padding-top:4px}
+
+.status-banner{border-radius:14px;font-size:12px}
+.status-banner.loading{background:var(--yl-l);border:1px solid var(--yl-b);color:#7A5C00}
+
+.kpi-grid{gap:16px}
+.kpi-card{border:1px solid var(--bdr);border-radius:var(--r);padding:18px 18px 16px;box-shadow:var(--shd);transition:transform .18s,box-shadow .18s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shd2)}
+.kpi-card.good{border-top:1px solid var(--bdr);box-shadow:inset 0 3px 0 var(--grn),var(--shd)}
+.kpi-card.warn{border-top:1px solid var(--bdr);box-shadow:inset 0 3px 0 #F59E0B,var(--shd)}
+.kpi-card.bad{border-top:1px solid var(--bdr);box-shadow:inset 0 3px 0 var(--red),var(--shd)}
+.kpi-card.hero{border:none;background:radial-gradient(120% 140% at 100% 0%,rgba(255,199,44,.20),transparent 55%),var(--ch);box-shadow:var(--shd2)}
+body.dark .kpi-card.hero{background:radial-gradient(120% 140% at 100% 0%,rgba(255,199,44,.18),transparent 55%),#0D0E12}
+.kpi-ico{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:11px;background:var(--yl-l);font-size:17px;margin-bottom:12px;opacity:1}
+.kpi-card.hero .kpi-ico{background:rgba(255,199,44,.16)}
+.kpi-lbl{font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--mut);margin-bottom:6px}
+.kpi-card.hero .kpi-lbl{color:rgba(255,255,255,.62)}
+.kpi-val{font-size:25px;font-weight:800;letter-spacing:-.02em}
+.kpi-card.hero .kpi-val{color:var(--yl)}
+.kpi-sub{font-size:11px;line-height:1.5;margin-top:7px}
+.kpi-card.hero .kpi-sub{color:rgba(255,255,255,.55)}
+.kpi-prog{height:6px;margin-top:12px;background:var(--bg2)}
+
+.advisor-panel{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shd);padding:20px;margin:18px 0 6px;position:relative;overflow:hidden}
+.advisor-panel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--yl)}
+.advisor-head-title{font-size:14px;font-weight:800;letter-spacing:-.01em}
+.advisor-head-sub{font-size:11.5px}
+.advisor-item{border-radius:14px;border:1px solid var(--bdr);border-left:4px solid var(--bdr);background:var(--card2);padding:13px 15px}
+.advisor-title{font-size:12.5px}
+.advisor-text{font-size:11.5px;line-height:1.65}
+.advisor-item.pri-action{border-left-color:var(--yl);background:var(--yl-l)}
+.advisor-item.pri-urgent{border-left-color:var(--red);background:#FEF3F2}
+.advisor-item.pri-warn{border-left-color:#F59E0B;background:#FFF8E8}
+.advisor-item.pri-good{border-left-color:var(--grn);background:#F1FBF4}
+.advisor-item.pri-info{border-left-color:var(--mut);background:var(--card2)}
+body.dark .advisor-item.pri-action{background:#2B2410}
+body.dark .advisor-item.pri-urgent{background:#2A0F0F}
+body.dark .advisor-item.pri-warn{background:#2A2210}
+body.dark .advisor-item.pri-good{background:#0F2418}
+body.dark .advisor-item.pri-info{background:var(--card2)}
+
+.chart-box{border-radius:var(--r);padding:22px;border:1px solid var(--bdr);box-shadow:var(--shd)}
+.chart-title{font-size:13.5px;font-weight:800;letter-spacing:-.01em}
+.chart-badge{background:var(--yl-l);color:var(--yl-d);padding:4px 12px;font-weight:700;font-size:10.5px}
+.sec-note{border-radius:14px}
+.sec-note.info{background:var(--card2);border:1px solid var(--bdr);color:var(--txt2)}
+body.dark .sec-note.info{background:var(--card2);border-color:var(--bdr);color:var(--txt2)}
+.loader-spin{border-top-color:var(--yl)}
+@media(max-width:600px){
+  .main{padding:18px 14px 44px}.topbar{padding:10px 14px 0}
+  .kpi-val{font-size:18px;white-space:nowrap}.kpi-card{padding:14px}
+  .page-tabs{display:flex;width:100%}.ptab{flex:1;padding:9px 8px}
+}
 </style>
 </head>
 <body>
@@ -296,12 +353,6 @@ body.dark .sec-note.info{background:#0A1628;border-color:#1D3A6E;color:#93C5FD}
     <div class="card-desc" style="font-size:10.5px;color:var(--mut);margin-bottom:12px">Pekan = Senin s/d Sabtu. Pekan 1 mulai dari tanggal 1 sampai Sabtu pertama (bisa lebih pendek dari 6 hari). Hari Minggu gak dihitung (toko tutup).</div>
     <canvas id="chart-weekly" style="min-height:260px"></canvas>
     <div id="weekly-empty" style="display:none;text-align:center;padding:30px 20px;color:var(--mut);font-size:12px">Belum ada data Omset Pelanggan buat dikelompokin per pekan.</div>
-  </div>
-
-  <!-- AUTOMATED DIAGNOSE -->
-  <span class="slbl">🔍 Diagnosa Otomatis — Ringkasan Keseluruhan</span>
-  <div class="diag-grid" id="diagnose-panel">
-    <div class="diag-item info"><div class="diag-ico">⏳</div><div><div class="diag-title">Memuat data...</div><div class="diag-body">Diagnosa akan muncul setelah semua data berhasil dimuat.</div></div></div>
   </div>
 
   </div><!-- /page-2 -->
@@ -1009,7 +1060,6 @@ function renderAll(){
   renderAdvisor(data);
   renderSectionNotes(data);
   renderCharts(data);
-  renderDiagnose(data);
 }
 
 // ── KPI BLOCKS ────────────────────────────────────────
@@ -1165,16 +1215,16 @@ function renderAOVKesimpulan(d){
   // Skenario nilai per transaksi
   if(aovKurang){
     items.push({pri:'action',ico:'📈',title:'Dorong Nilai per Transaksi (Upsell)',
-      body:'AOV sekarang Rp'+fmt(aov)+' masih '+selisihPct+'% di bawah Ideal AOV Rp'+fmt(ideal)+' buat capai Target Perusahaan. Prioritas: UPSELL & BUNDLING tiap closing — tawarin paket lebih besar atau produk komplementer, bukan nambah leads baru dulu.'});
+      body:'AOV sekarang '+fmt(aov)+' masih '+selisihPct+'% di bawah Ideal AOV '+fmt(ideal)+' buat capai Target Perusahaan. Prioritas: UPSELL & BUNDLING tiap closing — tawarin paket lebih besar atau produk komplementer, bukan nambah leads baru dulu.'});
   } else {
     items.push({pri:'good',ico:'✅',title:'AOV Sudah di Atas Ideal',
-      body:'AOV sekarang Rp'+fmt(aov)+' udah '+selisihPct+'% di atas Ideal AOV Rp'+fmt(ideal)+'. Nilai per transaksi udah sehat — kalau proyeksi masih kurang, fokusin ke VOLUME transaksi, bukan harga.'});
+      body:'AOV sekarang '+fmt(aov)+' udah '+selisihPct+'% di atas Ideal AOV '+fmt(ideal)+'. Nilai per transaksi udah sehat — kalau proyeksi masih kurang, fokusin ke VOLUME transaksi, bukan harga.'});
   }
 
   // Skenario posisi keseluruhan
   if(posisiProyeksi<100){
     items.push({pri:'urgent',ico:'⚠️',title:'Proyeksi Masih di Bawah Target Perusahaan',
-      body:'Proyeksi cuma '+posisiProyeksi+'% dari Target Perusahaan kalau kecepatan sekarang dipertahanin (gap Rp'+fmt(Math.abs(gapPerusahaan))+'). '+(aovKurang?'Aksi tercepat: naikkan AOV lewat upsell di closing yang udah ada.':'Aksi tercepat: tambah volume transaksi lewat follow-up leads yang lebih agresif.')});
+      body:'Proyeksi cuma '+posisiProyeksi+'% dari Target Perusahaan kalau kecepatan sekarang dipertahanin (gap '+fmt(Math.abs(gapPerusahaan))+'). '+(aovKurang?'Aksi tercepat: naikkan AOV lewat upsell di closing yang udah ada.':'Aksi tercepat: tambah volume transaksi lewat follow-up leads yang lebih agresif.')});
   } else {
     items.push({pri:'good',ico:'🎯',title:'On Track ke Target Perusahaan',
       body:'Proyeksi udah '+posisiProyeksi+'% dari Target Perusahaan. Pertahanin ritme AOV & volume transaksi yang sekarang.'});
@@ -1259,14 +1309,14 @@ function renderCharts(d){
     {
       label:'Omset Pelanggan (Umum+Tukang+Proyek)',
       data:pelangganData,
-      backgroundColor:'rgba(139,92,246,.7)',borderColor:'#8B5CF6',
-      borderWidth:1.5,borderRadius:4,order:2,
+      backgroundColor:'rgba(255,199,44,.92)',borderColor:'#E0A800',
+      borderWidth:1,borderRadius:6,order:2,
     },
     {
       type:'line',
       label:'Target Harian',
       data:targets,
-      borderColor:'rgba(220,38,38,.8)',
+      borderColor:'#1F2128',
       borderDash:[5,4],borderWidth:2,
       pointRadius:0,fill:false,tension:0,order:1,
     }
@@ -1407,10 +1457,10 @@ function renderWeeklyChart(d){
 
   var ctx=document.getElementById('chart-weekly').getContext('2d');
   var datasets=[
-    {type:'bar',label:'Omset Pelanggan (Umum+Tukang+Proyek)',data:dataPelanggan,backgroundColor:'#8B5CF6',borderRadius:6,order:2},
+    {type:'bar',label:'Omset Pelanggan (Umum+Tukang+Proyek)',data:dataPelanggan,backgroundColor:'#FFC72C',borderRadius:8,order:2},
   ];
   if(hasTarget){
-    datasets.push({type:'line',label:'Target Pekan',data:dataTargetPekan,borderColor:'#1C1E26',borderDash:[6,4],borderWidth:2,pointRadius:3,pointBackgroundColor:'#1C1E26',tension:0,fill:false,order:1});
+    datasets.push({type:'line',label:'Target Pekan',data:dataTargetPekan,borderColor:'#1F2128',borderDash:[6,4],borderWidth:2,pointRadius:3,pointBackgroundColor:'#1F2128',tension:0,fill:false,order:1});
   }
   new Chart(ctx,{
     type:'bar',
@@ -1421,89 +1471,6 @@ function renderWeeklyChart(d){
   });
 }
 
-
-// ── DIAGNOSE ENGINE ───────────────────────────────────
-function renderDiagnose(d){
-  var items=[];
-  var ap=d.achievement_pct;
-  var cr=d.cr_online;          // CR yang relevan untuk diagnosa = Online CR
-  var cr_overall=d.closing_rate;
-  var roas=d.roas;
-  var ld=d.leads;
-  var total_leads=d.total_leads_masuk;
-  var ttb_pct=ld.total>0?pct(ld.ttb,ld.total):0;
-  var prevYM=getPrevMonth(d.ym);
-  var prev=getMonthData(prevYM);
-  var cr_prev=prev.cr_online;  // bandingkan CR online vs bulan lalu
-  var leads_prev=prev.total_leads_masuk;
-  var roas_prev=prev.roas;
-
-  // ── Rule 1: Traffic naik + Closing Rate turun → kualitas traffic / CS
-  if(total_leads>leads_prev*1.05&&cr<cr_prev-2&&cr_prev>0){
-    items.push({type:'danger',ico:'🚨',title:'Traffic naik, Closing Rate turun',body:'Leads masuk lebih banyak ('+total_leads+' vs '+leads_prev+') tapi closing rate turun dari '+cr_prev+'% ke '+cr+'%. Kemungkinan: (1) kualitas traffic menurun — audit audience targeting, (2) CS response time melambat, atau (3) script follow-up perlu diperbarui.'});
-  }
-
-  // ── Rule 2: Closing Rate stabil + Omzet turun → transaksi atau AOV turun
-  if(ap<80&&Math.abs(cr-cr_prev)<2&&cr_prev>0){
-    items.push({type:'warn',ico:'📉',title:'Closing Rate stabil, Omzet turun',body:'Closing rate konsisten (~'+cr+'%) tapi omzet hanya '+ap+'% dari target. Kemungkinan: (1) jumlah transaksi kurang — perlu lebih banyak leads, atau (2) AOV turun — cek komposisi produk yang terjual, apakah produk bernilai rendah yang mendominasi.'});
-  }
-
-  // ── Rule 3: Lead turun + Closing Rate stabil → masalah acquisition
-  if(total_leads<leads_prev*0.85&&leads_prev>0&&Math.abs(cr-cr_prev)<3){
-    items.push({type:'danger',ico:'📡','title':'Leads turun, masalah Acquisition',body:'Jumlah leads bulan ini ('+total_leads+') turun '+Math.round((1-total_leads/leads_prev)*100)+'% dari bulan lalu ('+leads_prev+'). Closing rate masih normal. Ini sinyal masalah di hulu: (1) budget iklan kurang, (2) iklan fatigue — refresh creative, (3) reach menurun.'});
-  }
-
-  // ── Rule 4: ROAS rendah
-  if(roas>0&&roas<5){
-    items.push({type:'danger',ico:'💸',title:'ROAS rendah ('+roas+'x) — Iklan Tidak Efisien',body:'Setiap Rp 1 yang dibelanjakan iklan menghasilkan hanya Rp '+roas+' omzet. Target sehat minimal 5x, excellent di 8x+. Action: (1) audit audience dan creative yang paling boros, (2) matikan campaign CPL > Rp '+Math.round(d.cpl*1.3).toLocaleString('id-ID')+', (3) review landing page / skrip CS.'});
-  }
-
-  // ── Rule 5: TTB tinggi → kualitas traffic buruk
-  if(ttb_pct>50){
-    items.push({type:'warn',ico:'👻',title:'Ghost Leads tinggi ('+ttb_pct+'% tidak respons)',body:'Lebih dari setengah leads tidak pernah merespons. Kemungkinan: (1) response time CS > 1 jam setelah leads masuk, (2) targeting iklan tidak spesifik — banyak audience tidak relevan, (3) konten iklan tidak setting ekspektasi yang tepat.'});
-  }
-
-  // ── Rule 6: Pencapaian sangat rendah
-  if(ap<60){
-    items.push({type:'danger',ico:'🔴',title:'Pencapaian kritis: '+ap+'% dari target',body:'Omzet baru '+fmt(d.omset_real)+' dari target '+fmt(d.target)+'. Gap Rp '+fmt(d.gap_omzet)+' masih harus dipenuhi. Perlu akselerasi segera: (1) intensifkan follow-up leads yang masih Tanya ('+ld.tanya+' leads), (2) evaluasi apakah target realistis, (3) pertimbangkan tambah budget iklan.'});
-  }
-
-  // ── Rule 7: On track / exceeding
-  if(ap>=100){
-    items.push({type:'ok',ico:'🏆',title:'Target bulan ini tercapai! ('+ap+'%)',body:'Omzet sudah melampaui target sebesar +'+fmt(Math.abs(d.gap_omzet))+'. Pertahankan momentum: (1) jaga kualitas closing, (2) dorong upsell ke existing customer, (3) review apa yang berhasil bulan ini untuk direplikasi.'});
-  } else if(ap>=80&&d.hari_kerja>0){
-    var sisa_hari=22-d.hari_kerja;
-    var per_hari_needed=sisa_hari>0?Math.round(d.gap_omzet/sisa_hari):0;
-    items.push({type:'ok',ico:'🎯',title:'On Track — '+ap+'% tercapai',body:'Pencapaian bagus dengan '+d.hari_kerja+' hari kerja. Perlu tambahan ~'+fmt(per_hari_needed)+'/hari untuk '+sisa_hari+' hari tersisa agar menutup gap '+fmt(d.gap_omzet)+'.'});
-  }
-
-  // ── Rule 8: ROAS naik vs sebelumnya
-  if(roas>0&&roas_prev>0&&roas>roas_prev*1.1){
-    items.push({type:'ok',ico:'📈',title:'ROAS membaik: '+roas+'x (sebelumnya '+roas_prev+'x)',body:'Efisiensi marketing meningkat. Identifikasi campaign mana yang paling berkontribusi dan scale budget ke sana.'});
-  }
-
-  // ── Rule 9: AOV drop
-  if(d.aov>0&&prev.aov>0&&d.aov<prev.aov*0.85){
-    items.push({type:'warn',ico:'📦',title:'Average Order Value turun',body:'AOV bulan ini '+fmt(d.aov)+' vs bulan lalu '+fmt(prev.aov)+' (turun '+Math.round((1-d.aov/prev.aov)*100)+'%). Kemungkinan: (1) banyak order produk kecil/murah, (2) kurang upselling, (3) segmen pelanggan bergeser ke rumahan daripada proyek.'});
-  }
-
-  // ── Rule 10: Cost per Lead naik signifikan
-  if(d.cpl>0&&prev.cpl>0&&d.cpl>prev.cpl*1.25){
-    items.push({type:'warn',ico:'💰',title:'Cost per Lead naik '+Math.round((d.cpl/prev.cpl-1)*100)+'%',body:'CPL naik dari '+fmt(prev.cpl)+' ke '+fmt(d.cpl)+'. Iklan semakin mahal untuk acquire lead yang sama. Review: (1) tingkat persaingan iklan naik, (2) audience sudah saturasi, (3) refresh creative iklan.'});
-  }
-
-  // ── Rule 11: No data
-  if(!D.loaded||items.length===0){
-    items.push({type:'info',ico:'ℹ️',title:'Tidak ada anomali terdeteksi',body:'Semua metrik dalam kondisi normal atau data belum cukup untuk diagnosa. Lengkapi data biaya iklan dan pastikan semua sheet terupdate.'});
-  }
-
-  document.getElementById('diagnose-panel').innerHTML=items.map(function(it){
-    return'<div class="diag-item '+it.type+'">'
-      +'<div class="diag-ico">'+it.ico+'</div>'
-      +'<div><div class="diag-title">'+esc(it.title)+'</div>'
-      +'<div class="diag-body">'+esc(it.body)+'</div></div></div>';
-  }).join('');
-}
 
 function getPrevMonth(ym){
   var p=ym.split('-');var y=+p[0],m=+p[1];

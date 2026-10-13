@@ -380,8 +380,8 @@ var SHEETS = {
   // lewat KODE AKUN & NAMA BULAN — bukan nomor baris.
   //   tab "toko"   → akun 06.1107 BIAYA IKLAN TOKO  (Kubah Emas)
   //   tab "proyek" → akun 06.1301 BIAYA IKLAN PROYEK (Kumasindo)
-  ads_toko:   { id:'1nAEc8G_u22UoQOhBuVXUGf9bZQ3ioDVLVW3XYMc_VqQ', gid:148199424,  sheet:'toko',   range:'A1:AB50', headers:0 },
-  ads_proyek: { id:'1nAEc8G_u22UoQOhBuVXUGf9bZQ3ioDVLVW3XYMc_VqQ', gid:1001036412, sheet:'proyek', range:'A1:AB50', headers:0 },
+  ads_toko:   { id:'1nAEc8G_u22UoQOhBuVXUGf9bZQ3ioDVLVW3XYMc_VqQ', gid:148199424,  sheet:'toko',   range:'A25:AB25', headers:0 },
+  ads_proyek: { id:'1nAEc8G_u22UoQOhBuVXUGf9bZQ3ioDVLVW3XYMc_VqQ', gid:1001036412, sheet:'proyek', range:'A35:AB35', headers:0 },
   // Kumasindo: tab "Database Dashboard", blok kolom E:H =
   // Bulan | Omzet Potensi Proyek (=Deal) | Omzet Proyek terlaksana | Target
   km_db: { id:'1HCWBJh04eLHneRhvrtqPXEzfNnqZDc_rO1bG5kCWEDU', gid:409372230, sheet:'Database Dashboard', range:'E1:H14', headers:0 },
@@ -395,7 +395,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v17';
+var CACHE_KEY = 'exec_dash_v18';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -614,26 +614,24 @@ function cellVal(c){ return (!c||c.v===null||c.v===undefined)?'':c.v; }
 // Tabel akun: cari kolom bulan (baris yang memuat JANUARI & bulan itu),
 // lalu baris akun by kode. Kolom bulan = Realisasi, kolom sesudahnya = Forecast.
 function parseBiayaIklanAkun(table,kode){
-  var matrix=[];
-  var lab=(table.cols||[]).map(function(c){return c.label||'';});
-  if(lab.some(function(x){return x;})) matrix.push(lab);
-  (table.rows||[]).forEach(function(r){matrix.push((r.c||[]).map(cellVal));});
-  var ymNow=nowYM(), mi=parseInt(ymNow.split('-')[1],10)-1;
-  var NAME=MONTHS_ID[mi].toUpperCase();
-  var ci=-1;
-  for(var i=0;i<matrix.length&&ci<0;i++){
-    var up=matrix[i].map(function(x){return String(x).trim().toUpperCase();});
-    // header bisa "OKTOBER" atau "OKTOBER REALISASI" -> cocokkan awal teks
-    var idxOf=function(nm){for(var q=0;q<up.length;q++){if(up[q]===nm||up[q].indexOf(nm+' ')===0)return q;}return -1;};
-    if(idxOf('JANUARI')>=0&&idxOf(NAME)>=0) ci=idxOf(NAME);
+  // Range dikunci ke 1 baris (toko = baris 25, proyek = baris 35), kolom A:AB.
+  // Kolom D = Jan Realisasi, E = Jan Forecast, F = Feb Realisasi, dst:
+  // Realisasi bulan m (1-12) = index 3+2*(m-1); Oktober = V. Forecast = kolom sesudahnya (W).
+  var ymNow=nowYM(), m=parseInt(ymNow.split('-')[1],10);
+  var ci=3+2*(m-1);
+  var arr=[];
+  var rows=table.rows||[];
+  if(rows.length){
+    arr=(rows[0].c||[]).map(function(c){return (!c||c.v===null||c.v===undefined)?(c&&c.f?c.f:''):c.v;});
   }
-  var row=null;
-  for(var k=0;k<matrix.length&&!row;k++){
-    for(var c=0;c<3;c++){ if(String(matrix[k][c]==null?'':matrix[k][c]).trim()===kode){row=matrix[k];break;} }
+  // gviz kadang menjadikan baris tunggal sbg header -> ambil dari cols[].label
+  if(!arr.some(function(x){return x!=='';})){
+    arr=(table.cols||[]).map(function(c){return c.label||'';});
   }
-  console.log('[Biaya Iklan '+kode+'] kolom bulan idx=',ci,'| baris akun ketemu=',!!row);
-  if(ci<0||!row) return {ym:ymNow,real:0,fc:0,found:false};
-  return {ym:ymNow,real:parseAnyNum(row[ci]),fc:parseAnyNum(row[ci+1]),found:true};
+  var code=String(arr[1]==null?'':arr[1]).trim();
+  var real=parseAnyNum(arr[ci]), fc=parseAnyNum(arr[ci+1]);
+  console.log('[Biaya Iklan '+kode+'] kode di sheet=',code,'| real=',arr[ci],'| fc=',arr[ci+1],'| len=',arr.length);
+  return {ym:ymNow,real:real,fc:fc,found:real>0||fc>0,codeOk:code===kode};
 }
 
 // Kumasindo — cari baris bulan berjalan by NAMA BULAN

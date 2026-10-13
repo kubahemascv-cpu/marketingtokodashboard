@@ -297,7 +297,6 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     </div>
     <div id="note-km"></div>
   </div>
@@ -396,7 +395,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v16';
+var CACHE_KEY = 'exec_dash_v17';
 var CACHE_TTL = 45 * 60 * 1000; // 45 menit
 
 // ── STORAGE ──────────────────────────────────────────
@@ -624,7 +623,9 @@ function parseBiayaIklanAkun(table,kode){
   var ci=-1;
   for(var i=0;i<matrix.length&&ci<0;i++){
     var up=matrix[i].map(function(x){return String(x).trim().toUpperCase();});
-    if(up.indexOf('JANUARI')>=0&&up.indexOf(NAME)>=0) ci=up.indexOf(NAME);
+    // header bisa "OKTOBER" atau "OKTOBER REALISASI" -> cocokkan awal teks
+    var idxOf=function(nm){for(var q=0;q<up.length;q++){if(up[q]===nm||up[q].indexOf(nm+' ')===0)return q;}return -1;};
+    if(idxOf('JANUARI')>=0&&idxOf(NAME)>=0) ci=idxOf(NAME);
   }
   var row=null;
   for(var k=0;k<matrix.length&&!row;k++){
@@ -1131,7 +1132,7 @@ function renderKPIs(d){
       dpPct!==null?dpPct+'% dari target (sudah ×95% toleransi telat bayar)':'Butuh data hari kerja',null,null,dpCls,d.hari_aktif>0?'Hari Aktif: '+d.hari_aktif+' hari':'Hari Aktif: —');
 }
 
-// ── KUMASINDO — Target vs Proyeksi (7 kartu, sama dengan Kubah Emas) ──
+// ── KUMASINDO — Target vs Proyeksi (6 kartu: tanpa Proyeksi Akhir Bulan) ──
 function renderKumasindo(){
   var box=document.getElementById('kpi-km'); if(!box)return;
   var ym=SEL_MONTH, km=D.km||{}, ad=(D.ads&&D.ads.proyek&&D.ads.proyek.ym===ym)?D.ads.proyek:{real:0,fc:0};
@@ -1141,21 +1142,17 @@ function renderKumasindo(){
   var now=new Date(), py=+ym.split('-')[0], pm=+ym.split('-')[1];
   var total=new Date(py,pm,0).getDate();                       // jumlah hari bulan itu (Minggu & tgl merah tetap dihitung)
   var elapsed=(now.getFullYear()===py&&now.getMonth()+1===pm)?now.getDate():total;
-  var proy=elapsed>0&&deal>0?Math.round(deal/elapsed*total*0.95):0;
   var dap=pct(deal,target), gap=target-deal;
   var roas=spend>0&&deal>0?+(deal/spend).toFixed(1):0;
   var dacls=dap>=100?'good':dap>=80?'warn':'bad';
   var rCls=roas>=8?'good':roas>=5?'warn':'bad';
-  var pPct=target>0&&proy>0?pct(proy,target):null;
-  var pCls=proy>0?(proy>=target?'good':proy>=target*0.8?'warn':'bad'):'';
   box.innerHTML=
     kpiCard('🎯','Target Omzet',target?fmt(target):'—','Bulan '+ymLabel(ym),null,null,'hero','Hari berjalan: '+elapsed+' dari '+total+' hari')+
     kpiCard('🤝','Deal Sales',ok?fmt(deal):'—','Omzet Potensi Proyek',null,null,'',done?'Terlaksana: '+fmt(done):'')+
     kpiCard('📈','Pencapaian Deal Sales',target?dap+'%':'—',target?fmt(deal)+' / '+fmt(target):'Target belum diisi',null,target?dap:null,target?dacls:'')+
     kpiCard('💸','Biaya Iklan',spend?fmt(spend):'—','Realisasi '+ymLabel(ym),null,null,'',fc?'Forecast: '+fmt(fc):'')+
     kpiCard('📡','ROAS',roas?roas+'x':'—','Deal Sales ÷ Biaya Iklan',roas>0?(roas>=8?'✅ Excellent':roas>=5?'⚠️ Average':'❌ Poor'):null,null,roas?rCls:'')+
-    kpiCard('📉','Gap Omzet',target?fmt(Math.abs(gap)):'—',gap<=0&&target?'✅ Deal Sales sudah melampaui target':'Sisa yang harus dicapai (vs Deal Sales)',gap<=0&&target?'▲ +'+fmt(Math.abs(gap)):null,null,target?(gap<=0?'good':'bad'):'')+
-    kpiCard('🔮','Proyeksi Akhir Bulan',proy?fmt(proy):'—',pPct!==null?pPct+'% dari target (sudah ×95% toleransi telat bayar)':'Butuh data Deal Sales',null,null,pCls,'Jumlah hari: '+total+' hari');
+    kpiCard('📉','Gap Omzet',target?fmt(Math.abs(gap)):'—',gap<=0&&target?'✅ Deal Sales sudah melampaui target':'Sisa yang harus dicapai (vs Deal Sales)',gap<=0&&target?'▲ +'+fmt(Math.abs(gap)):null,null,target?(gap<=0?'good':'bad'):'');
   var note=document.getElementById('note-km');
   if(note){
     var msg='';

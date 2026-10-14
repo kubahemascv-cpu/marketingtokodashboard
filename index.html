@@ -395,8 +395,9 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v18';
-var CACHE_TTL = 45 * 60 * 1000; // 45 menit
+var CACHE_KEY = 'exec_dash_v19';
+var CACHE_TTL = 5 * 60 * 1000; // 5 menit
+function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
 // ── STORAGE ──────────────────────────────────────────
 var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -428,7 +429,7 @@ function gviz(cfg){
     };
     sc.onerror=function(){if(done)return;done=true;cleanup();reject(new Error('Script error: '+cfg.sheet));};
     function cleanup(){clearTimeout(t);try{delete window[cb];}catch(e){window[cb]=undefined;}if(sc.parentNode)sc.parentNode.removeChild(sc);}
-    var url='https://docs.google.com/spreadsheets/d/'+cfg.id+'/gviz/tq?tqx=out:json;responseHandler:'+cb
+    var url='https://docs.google.com/spreadsheets/d/'+cfg.id+'/gviz/tq?tqx=reqId:'+Date.now()+';out:json;responseHandler:'+cb
       +(cfg.gid!==undefined?'&gid='+cfg.gid:'&sheet='+encodeURIComponent(cfg.sheet))
       +(cfg.tq?'&tq='+encodeURIComponent(cfg.tq):(cfg.range?'&range='+encodeURIComponent(cfg.range):''))
       +'&headers='+(cfg.headers||0)
@@ -742,10 +743,10 @@ function loadData(force){
 
   if(!force){
     var cached=lsGet(CACHE_KEY,null);
-    if(cached&&Date.now()-cached.ts<CACHE_TTL){
-      D=cached.data;D.loaded=true;
+    if(cached&&cached.day===todayKey()&&Date.now()-cached.ts<CACHE_TTL){
+      D=cached.data;D.loaded=true;D._src='cache';D._ts=cached.ts;
       document.getElementById('btn-refresh').classList.remove('spin');
-      renderAll();
+      renderAll();renderSrcInfo();
       showBanner('ok','Data dari cache · Terakhir: '+new Date(cached.ts).toLocaleString('id-ID'));
       return;
     }
@@ -766,16 +767,24 @@ function loadData(force){
   ]).then(function(results){
     var errors=results.filter(function(r){return r.status==='rejected';});
     D.loaded=true;D.lastUpdate=new Date();
-    lsSet(CACHE_KEY,{ts:Date.now(),data:JSON.parse(JSON.stringify(D,function(k,v){return v instanceof Date?v.toISOString():v;}))});
+    D._src='live';D._ts=Date.now();
+    lsSet(CACHE_KEY,{ts:Date.now(),day:todayKey(),data:JSON.parse(JSON.stringify(D,function(k,v){return v instanceof Date?v.toISOString():v;}))});
     document.getElementById('btn-refresh').classList.remove('spin');
     document.getElementById('update-badge').textContent='Update: '+D.lastUpdate.toLocaleTimeString('id-ID');
     if(errors.length){showBanner('warn','⚠️ '+errors.length+' sumber data gagal dimuat. Menampilkan data yang tersedia.');}
     else{showBanner('ok','✅ Semua data berhasil dimuat');}
-    renderAll();
+    renderAll();renderSrcInfo();
   });
 }
 
 // ── BANNER ────────────────────────────────────────────
+function renderSrcInfo(){
+  var el=document.getElementById('src-info');
+  if(!el){var b=document.getElementById('status-banner');b.insertAdjacentHTML('afterend','<div id="src-info" style="font-size:10.5px;color:#6B7280;padding:4px 16px;text-align:right"></div>');el=document.getElementById('src-info');}
+  var k=D.kesimpulan||{};
+  var t=D._ts?new Date(D._ts).toLocaleTimeString('id-ID'):'—';
+  el.textContent='Diambil '+t+' ('+(D._src==='cache'?'CACHE':'langsung dari sheet')+') · KESIMPULAN: Hari '+(k.hari_kerja||0)+' · Deal '+fmt(k.deal_sales||0)+' · Target '+fmt(k.target_omzet||0);
+}
 function showBanner(type,msg){
   var el=document.getElementById('status-banner');
   el.className='status-banner '+type;
@@ -1586,6 +1595,7 @@ function exportData(){
 }
 
 // ── EVENTS ────────────────────────────────────────────
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&D&&D._ts&&Date.now()-D._ts>CACHE_TTL){loadData(true);}});
 document.getElementById('btn-refresh').addEventListener('click',function(){lsSet(CACHE_KEY,null);loadData(true);});
 // ── PWA ───────────────────────────────────────────────
 // Icon (icon-192.png, icon-512.png) dan manifest.json sekarang file

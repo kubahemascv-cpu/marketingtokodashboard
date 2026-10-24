@@ -345,6 +345,16 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
     <div id="note-chart" style="margin-top:12px"></div>
   </div>
 
+  <span class="slbl">🧾 Jumlah Nota Harian</span>
+  <div class="chart-box">
+    <div class="chart-hd">
+      <div class="chart-title">Jumlah Nota per Hari vs Ideal &amp; Trend</div>
+      <span class="chart-badge" id="chart-badge-nota">—</span>
+    </div>
+    <div style="position:relative;height:300px"><canvas id="chart-nota"></canvas></div>
+    <div id="note-nota" style="margin-top:12px"></div>
+  </div>
+
   <span class="slbl">📅 Deal Sales V.2 per Pekan</span>
   <div class="chart-box">
     <div class="card-desc" style="font-size:10.5px;color:var(--mut);margin-bottom:12px">Pekan = Senin s/d Sabtu. Pekan 1 mulai dari tanggal 1 sampai Sabtu pertama (bisa lebih pendek dari 6 hari). Hari Minggu gak dihitung (toko tutup).</div>
@@ -395,7 +405,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v19';
+var CACHE_KEY = 'exec_dash_v20';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -447,20 +457,19 @@ function parseGvizDate(v){
 }
 
 function parseDataPelanggan(table){
-  // A=Tanggal, E=JUMLAH (total Omset Umum+Tukang+Proyek harian),
-  // J=Nota Online, K=Nota Offline (tabel "NOTA PER MEDIA", nempel di
-  // baris yang SAMA kayak Data Harian Pelanggan, kolom lebih ke kanan).
-  // Pakai pola parsing tanggal yang SAMA kayak parseDealKasir (udah
-  // terbukti jalan) — handle Date object asli ATAU teks "DD/MM/YYYY".
-  var p=parseTable(table);
-  var cols=p.hdrs;
-  var colA=cols[0]!==undefined?cols[0]:'A';
-  var colE=cols[4]!==undefined?cols[4]:'E';
-  var colJ=cols[9]!==undefined?cols[9]:'J';
-  var colK=cols[10]!==undefined?cols[10]:'K';
+  // A=Tanggal, E=JUMLAH omzet, I=JUMLAH nota (Umum+Tukang+Proyek),
+  // J=Nota Online, K=Nota Offline. Dibaca LANGSUNG per index kolom, bukan
+  // lewat label header — karena header sheet ini ada yang kembar
+  // (JUMLAH muncul di E dan I, UMUM/TUKANG/PROYEK dua kali) dan lewat label
+  // nilainya saling timpa.
+  // Handle Date object asli ATAU teks "DD/MM/YYYY" ATAU "Date(y,m,d)".
+  var cols=table.cols||[];
+  function raw(r,i){var c=r.c?r.c[i]:null;return (!c||c.v===null||c.v===undefined)?'':c.v;}
   var result=[];
-  p.rows.forEach(function(r){
-    var dateVal=r[colA];
+  (table.rows||[]).forEach(function(row){
+    var dateVal=raw(row,0);
+    var tp=cols[0]&&cols[0].type;
+    if((tp==='date'||tp==='datetime')&&dateVal) dateVal=parseGvizDate(dateVal);
     var dv=null;
     if(dateVal instanceof Date) dv=dateVal;
     else if(dateVal){
@@ -473,12 +482,13 @@ function parseDataPelanggan(table){
         else{ var d2=new Date(s); if(!isNaN(d2)) dv=d2; }
       }
     }
-    if(!dv) return;
-    var jumlah=parseNumStr(r[colE]||0);
-    var notaOnline=parseNumStr(r[colJ]||0);
-    var notaOffline=parseNumStr(r[colK]||0);
-    if(jumlah===0&&notaOnline===0&&notaOffline===0) return; // baris belum keisi, skip
-    result.push({date:dv,jumlah:jumlah,notaOnline:notaOnline,notaOffline:notaOffline});
+    if(!dv||isNaN(dv)) return;
+    var jumlah=parseNumStr(raw(row,4)||0);
+    var nota=parseNumStr(raw(row,8)||0);
+    var notaOnline=parseNumStr(raw(row,9)||0);
+    var notaOffline=parseNumStr(raw(row,10)||0);
+    if(jumlah===0&&notaOnline===0&&notaOffline===0&&nota===0) return; // baris belum keisi, skip
+    result.push({date:dv,jumlah:jumlah,nota:nota,notaOnline:notaOnline,notaOffline:notaOffline});
   });
   console.log('[Data Pelanggan] baris valid ditemukan:',result.length,'| 3 contoh pertama:',result.slice(0,3));
   return result.sort(function(a,b){return a.date-b.date;});
@@ -1097,7 +1107,7 @@ function showPage(n){
   try{localStorage.setItem('exec_dash_page',String(n));}catch(e){}
   // chart yang dibuat saat halaman tersembunyi perlu di-resize
   try{
-    var ids=['chart-daily','chart-weekly'];
+    var ids=['chart-daily','chart-nota','chart-weekly'];
     ids.forEach(function(id){var el=document.getElementById(id);var c=el&&Chart.getChart(el);if(c)c.resize();});
   }catch(e){}
   window.scrollTo(0,0);
@@ -1416,7 +1426,131 @@ function renderCharts(d){
   // yang lebih luas di Diagnosa Otomatis & Cost per Lead.
 
   renderMarketingKPIs(d);
+  renderNotaChart(d);
   renderWeeklyChart(d);
+}
+
+
+// ── JUMLAH NOTA HARIAN + TREND + IDEAL ─────────────────
+// Sumber: REPORT V.2 "Data Harian Pelanggan" — A = tanggal, I = JUMLAH nota
+// (Umum+Tukang+Proyek). Ideal harian = Nota Ideal (KESIMPULAN C26) ÷ Hari Kerja,
+// sama dengan "Nota/hari" di sheet. Trend = regresi linier dari hari-hari
+// yang SUDAH LENGKAP (hari ini dikeluarkan karena datanya belum penuh).
+function renderNotaChart(d){
+  var tc='#7A7E8A', grid='rgba(0,0,0,.05)';
+  var badge=document.getElementById('chart-badge-nota');
+  var note=document.getElementById('note-nota');
+  var cv=document.getElementById('chart-nota');
+  destroyChart('chart-nota');
+  if(!cv) return;
+
+  var rows=(D.data_pelanggan||[]).map(function(r){
+    var dt=r.date instanceof Date?r.date:new Date(r.date);
+    return {date:dt,nota:r.nota||0};
+  }).filter(function(r){
+    return !isNaN(r.date)&&(r.date.getFullYear()+'-'+String(r.date.getMonth()+1).padStart(2,'0'))===d.ym;
+  }).sort(function(a,b){return a.date-b.date;});
+
+  if(!rows.length){
+    cv.parentNode.style.display='none';
+    badge.textContent='— belum ada data';
+    note.innerHTML='<div class="sec-note warn" style="margin:0"><span class="sec-note-ico">⚠️</span><span>Belum ada data nota harian untuk '+ymLabel(d.ym)+' (REPORT V.2, kolom I).</span></div>';
+    return;
+  }
+  cv.parentNode.style.display='block';
+
+  // hari berjalan = hari ini (data belum lengkap)
+  var now=new Date(), todayKey=now.getFullYear()+'-'+now.getMonth()+'-'+now.getDate();
+  var isPartial=rows.map(function(r){
+    return d.isCurrentMonth&&(r.date.getFullYear()+'-'+r.date.getMonth()+'-'+r.date.getDate())===todayKey;
+  });
+
+  var labels=rows.map(function(r){return String(r.date.getDate()).padStart(2,'0')+'/'+String(r.date.getMonth()+1).padStart(2,'0');});
+  var vals=rows.map(function(r){return r.nota;});
+
+  // Ideal per hari
+  var ideal=0;
+  if(d.nota_ideal_c26>0&&d.hari_kerja>0) ideal=d.nota_ideal_c26/d.hari_kerja;
+  else if(d.target_harian>0&&d.aov_card>0) ideal=d.target_harian/d.aov_card;
+
+  // Regresi linier (x = urutan hari kerja) — hanya hari lengkap
+  var xs=[],ys=[];
+  vals.forEach(function(v,i){ if(!isPartial[i]){xs.push(i);ys.push(v);} });
+  var slope=0,icpt=0,hasTrend=xs.length>=3;
+  if(hasTrend){
+    var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;
+    for(var i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxy+=xs[i]*ys[i];sxx+=xs[i]*xs[i];}
+    var den=n*sxx-sx*sx;
+    if(den!==0){slope=(n*sxy-sx*sy)/den;icpt=(sy-slope*sx)/n;} else hasTrend=false;
+  }
+  var trend=hasTrend?vals.map(function(_,i){return Math.max(0,+(icpt+slope*i).toFixed(2));}):[];
+
+  var fullVals=ys;
+  var avg=fullVals.length?fullVals.reduce(function(a,b){return a+b;},0)/fullVals.length:0;
+  var below=ideal>0?fullVals.filter(function(v){return v<ideal;}).length:0;
+
+  badge.textContent=fullVals.length+' hari lengkap'+(isPartial.some(function(x){return x;})?' + hari ini':'');
+
+  var barBg=vals.map(function(_,i){return isPartial[i]?'rgba(255,199,44,.35)':'rgba(255,199,44,.92)';});
+  var barBd=vals.map(function(_,i){return isPartial[i]?'#E0A800':'#E0A800';});
+  var datasets=[{
+    type:'bar',label:'Jumlah Nota',data:vals,
+    backgroundColor:barBg,borderColor:barBd,borderWidth:1,borderRadius:6,order:3,
+    datalabels:{display:true,anchor:'end',align:'end',offset:0,color:'#1F2128',font:{size:9,weight:'700'},formatter:function(v){return v;}}
+  }];
+  if(hasTrend) datasets.push({
+    type:'line',label:'Trend',data:trend,
+    borderColor:'#1F2128',borderWidth:2.5,pointRadius:0,fill:false,tension:0,order:1,
+    datalabels:{display:false}
+  });
+  if(ideal>0) datasets.push({
+    type:'line',label:'Ideal ('+ideal.toFixed(1).replace('.',',')+' nota/hari)',data:labels.map(function(){return +ideal.toFixed(2);}),
+    borderColor:'#16A34A',borderDash:[6,4],borderWidth:2,pointRadius:0,fill:false,tension:0,order:2,
+    datalabels:{display:false}
+  });
+
+  new Chart(cv.getContext('2d'),{
+    type:'bar',
+    data:{labels:labels,datasets:datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:14}},
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:10},boxWidth:14,padding:10,color:tc}},
+        tooltip:{callbacks:{label:function(c){
+          if(c.dataset.label==='Trend')return' Trend: '+c.parsed.y.toFixed(1).replace('.',',')+' nota';
+          if(c.dataset.label.indexOf('Ideal')===0)return' Ideal: '+ideal.toFixed(1).replace('.',',')+' nota';
+          return' Nota: '+c.parsed.y+(isPartial[c.dataIndex]?' (hari berjalan, belum lengkap)':'');
+        }}}
+      },
+      scales:{
+        x:{grid:{color:grid},ticks:{color:tc,font:{size:9},maxTicksLimit:16}},
+        y:{grid:{color:grid},ticks:{color:tc,font:{size:9},precision:0},beginAtZero:true}
+      }
+    }
+  });
+
+  // Narasi singkat
+  var f1=function(x){return x.toFixed(1).replace('.',',');};
+  var msg='Rata-rata <b>'+f1(avg)+' nota/hari</b> (hari lengkap)';
+  if(ideal>0){
+    var pc=Math.round(avg/ideal*100);
+    msg+=' vs ideal <b>'+f1(ideal)+'</b> → <b>'+pc+'%</b> dari ideal; <b>'+below+' dari '+fullVals.length+' hari</b> di bawah ideal.';
+  } else {
+    msg+='. Nota ideal belum terbaca dari KESIMPULAN, jadi garis ideal tidak ditampilkan.';
+  }
+  var cls='info';
+  if(hasTrend){
+    var delta=slope*(xs.length-1);
+    if(Math.abs(slope)<0.1){ msg+=' Trend <b>datar</b>.'; }
+    else if(slope>0){ msg+=' Trend <b>naik</b> ±'+f1(slope)+' nota per hari kerja (sekitar '+f1(Math.abs(delta))+' nota dari awal ke akhir bulan).'; cls=(ideal>0&&avg<ideal)?'warn':'ok'; }
+    else { msg+=' Trend <b>turun</b> ±'+f1(Math.abs(slope))+' nota per hari kerja (sekitar '+f1(Math.abs(delta))+' nota dari awal ke akhir bulan).'; cls='bad'; }
+  } else {
+    msg+=' Trend belum bisa dihitung (butuh minimal 3 hari lengkap).';
+  }
+  if(ideal>0&&cls==='info') cls=avg>=ideal?'ok':'warn';
+  if(isPartial.some(function(x){return x;})) msg+=' <br><span style="opacity:.8">Batang pucat = hari ini, datanya belum lengkap, tidak dihitung ke rata-rata dan trend.</span>';
+  note.innerHTML='<div class="sec-note '+cls+'" style="margin:0"><span class="sec-note-ico">🧾</span><span>'+msg+'</span></div>';
 }
 
 // ── OMZET REAL & DEAL SALES PER PEKAN ──────────────────

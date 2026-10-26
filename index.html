@@ -405,7 +405,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v20';
+var CACHE_KEY = 'exec_dash_v21';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -466,8 +466,14 @@ function parseDataPelanggan(table){
   var cols=table.cols||[];
   function raw(r,i){var c=r.c?r.c[i]:null;return (!c||c.v===null||c.v===undefined)?'':c.v;}
   var result=[];
+  var seen={}, stop=false;
   (table.rows||[]).forEach(function(row){
+    if(stop) return;
     var dateVal=raw(row,0);
+    // Range A126:K200 memuat tabel LAIN di bawah blok ini (Data Penjualan Harian
+    // per Channel Sales) yang kolom A-nya juga tanggal. Blok yang dimaksud
+    // BERHENTI di baris TOTAL — semua sesudahnya diabaikan.
+    if(typeof dateVal==='string'&&/^\s*TOTAL\b/i.test(dateVal)){ if(result.length) stop=true; return; }
     var tp=cols[0]&&cols[0].type;
     if((tp==='date'||tp==='datetime')&&dateVal) dateVal=parseGvizDate(dateVal);
     var dv=null;
@@ -483,11 +489,14 @@ function parseDataPelanggan(table){
       }
     }
     if(!dv||isNaN(dv)) return;
+    var dk=dv.getFullYear()+'-'+dv.getMonth()+'-'+dv.getDate();
+    if(seen[dk]) return; // pengaman: satu tanggal hanya sekali
     var jumlah=parseNumStr(raw(row,4)||0);
     var nota=parseNumStr(raw(row,8)||0);
     var notaOnline=parseNumStr(raw(row,9)||0);
     var notaOffline=parseNumStr(raw(row,10)||0);
     if(jumlah===0&&notaOnline===0&&notaOffline===0&&nota===0) return; // baris belum keisi, skip
+    seen[dk]=1;
     result.push({date:dv,jumlah:jumlah,nota:nota,notaOnline:notaOnline,notaOffline:notaOffline});
   });
   console.log('[Data Pelanggan] baris valid ditemukan:',result.length,'| 3 contoh pertama:',result.slice(0,3));

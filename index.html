@@ -258,6 +258,19 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .jcat-cnt{font-size:11px;color:var(--mut);min-width:40px;text-align:right}
 @media(max-width:750px){#kpi-jasa{grid-template-columns:1fr}.jcat-name{min-width:90px}.jasa-wrap{padding:16px 12px 14px;border-radius:20px}}
 @media(max-width:600px){.ptab{font-size:11px;padding:9px 4px}}
+
+/* ═══ NAVIGASI HALAMAN: desktop = sidebar kiri, mobile/tablet = tab di atas ═══ */
+@media(min-width:1000px){
+  .main{display:grid;grid-template-columns:196px minmax(0,1fr);column-gap:26px;align-items:start}
+  .main>*{grid-column:2;min-width:0}
+  .main>.page-tabs{grid-column:1;grid-row:1 / span 12;position:sticky;top:112px;z-index:50;display:flex;flex-direction:column;gap:4px;padding:8px;width:auto;margin:0;border-radius:22px;background:#fff;border:1px solid var(--bdr);box-shadow:0 1px 2px rgba(31,33,40,.04),0 8px 24px rgba(31,33,40,.06)}
+  .main>.page-tabs .ptab{flex:none;width:100%;text-align:left;border-radius:14px;padding:12px 14px;font-size:12.5px;white-space:nowrap}
+  .main>.page-tabs .ptab:not(.active):hover{background:var(--bg2)}
+  .kpi-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(min-width:1500px){
+  .kpi-grid{grid-template-columns:repeat(4,1fr)}
+}
 </style>
 </head>
 <body>

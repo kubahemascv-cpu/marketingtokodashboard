@@ -234,6 +234,30 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .biz-km .kpi-card.hero .kpi-val{color:var(--ac-hi)}
 .biz-km .kpi-card:hover{box-shadow:0 2px 4px rgba(31,33,40,.05),0 14px 34px rgba(247,118,37,.14)}
 @media(max-width:600px){.biz{padding:16px 12px 14px;border-radius:20px}}
+
+/* ═══ BREAKDOWN JASA (aksen oranye Kumasindo) ═══ */
+.jasa-wrap{--ac:#F77625;--ac-d:#C2540F;--ac-l:#FFEEDF;--ac-hi:#FF9A55;background:#FFF5EC;border:1px solid #F9D3B3;border-radius:24px;padding:20px 20px 18px;margin-bottom:22px}
+.jasa-wrap .slbl{padding-top:0}
+.jasa-wrap .slbl+.kpi-grid,.jasa-wrap .kpi-grid{margin-bottom:12px}
+.jasa-wrap .slbl::before{background:var(--ac)}
+.jasa-wrap .kpi-ico{background:var(--ac-l)}
+.jasa-wrap .kpi-card:hover{box-shadow:0 2px 4px rgba(31,33,40,.05),0 14px 34px rgba(247,118,37,.14)}
+.jasa-wrap .chart-badge{background:var(--ac-l);color:var(--ac-d)}
+.jasa-wrap .slbl.jasa-sec{padding-top:24px}
+#kpi-jasa{grid-template-columns:repeat(3,1fr)}
+.jasa-grow-up{color:#16A34A;font-weight:700}.jasa-grow-dn{color:#DC2626;font-weight:700}.jasa-grow-nt{color:var(--mut);font-weight:600}
+.jasa-src{font-size:10.5px;color:var(--mut);margin:-4px 0 14px;line-height:1.6}
+.jasa-donut{position:relative;height:300px}
+.jcat-list{display:flex;flex-direction:column;gap:10px}
+.jcat-item{display:flex;align-items:center;gap:10px}
+.jcat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.jcat-name{font-size:12px;font-weight:600;color:var(--txt2);min-width:130px;flex-shrink:0}
+.jcat-bar{flex:1;background:var(--bdr);border-radius:99px;height:8px;overflow:hidden}
+.jcat-fill{height:100%;border-radius:99px}
+.jcat-pct{font-size:11px;font-weight:700;min-width:38px;text-align:right;color:var(--txt)}
+.jcat-cnt{font-size:11px;color:var(--mut);min-width:40px;text-align:right}
+@media(max-width:750px){#kpi-jasa{grid-template-columns:1fr}.jcat-name{min-width:90px}.jasa-wrap{padding:16px 12px 14px;border-radius:20px}}
+@media(max-width:600px){.ptab{font-size:11px;padding:9px 4px}}
 </style>
 </head>
 <body>
@@ -271,7 +295,8 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 
   <div class="page-tabs">
     <button class="ptab active" id="ptab-1" onclick="showPage(1)">📊 Report CEO</button>
-    <button class="ptab" id="ptab-2" onclick="showPage(2)">🔎 Breakdown Data</button>
+    <button class="ptab" id="ptab-2" onclick="showPage(2)">🔎 Breakdown Toko</button>
+    <button class="ptab" id="ptab-3" onclick="showPage(3)">🏗️ Breakdown Jasa</button>
   </div>
 
   <div class="page" id="page-1">
@@ -364,6 +389,38 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 
   </div><!-- /page-2 -->
 
+  <div class="page" id="page-3" style="display:none">
+  <div class="jasa-wrap">
+    <span class="slbl">📋 Ringkasan Performa CS</span>
+    <div class="jasa-src" id="jasa-src">Sumber: Data Deals Survey — bulan berjalan</div>
+    <div class="kpi-grid" id="kpi-jasa">
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    </div>
+    <div id="note-jasa-ringkasan"></div>
+
+    <span class="slbl jasa-sec">🥧 Distribusi Kategori</span>
+    <div class="chart-box">
+      <div class="chart-hd">
+        <div class="chart-title">Distribusi Kategori Survey</div>
+        <span class="chart-badge" id="jasa-donut-badge">—</span>
+      </div>
+      <div class="jasa-donut"><canvas id="chart-jasa-cat"></canvas></div>
+      <div id="note-jasa-cat" style="margin-top:12px"></div>
+    </div>
+
+    <span class="slbl jasa-sec">📑 Breakdown per Kategori</span>
+    <div class="chart-box">
+      <div class="chart-hd">
+        <div class="chart-title">Detail per Kategori</div>
+        <span class="chart-badge" id="jasa-cat-count">—</span>
+      </div>
+      <div class="jcat-list" id="jasa-cat-list"></div>
+    </div>
+  </div>
+  </div><!-- /page-3 -->
+
 </div><!-- /main -->
 
 <script>
@@ -396,6 +453,8 @@ var SHEETS = {
   // Bulan | Omzet Potensi Proyek (=Deal) | Omzet Proyek terlaksana | Target
   km_db: { id:'1HCWBJh04eLHneRhvrtqPXEzfNnqZDc_rO1bG5kCWEDU', gid:409372230, sheet:'Database Dashboard', range:'E1:H14', headers:0 },
   // Sheet 3: PIVOT col D (tanggal) & E (jumlah transaksi/nota harian) mulai baris 10
+  // Breakdown Jasa: tab 'Data Deals Survey' (spreadsheet CS), header di baris 1
+  jasa_survey: { id:'1jquRvLJgnrgM7VcZ7zU4j8rhSr8xIl64DmqYY_VSUeU', sheet:'Data Deals Survey', headers:1 },
   pivot_tx: { id:'1Ag2wEb_jP4R2RcN-fI-Em7LiDcIZwSf6PweJuXic9QM', sheet:'PIVOT', range:'D10:E500', headers:0 },
   // Sheet 3: PIVOT col J (tanggal) & K (omzet harian) mulai baris 10 — dipakai Tren Harian, TIDAK diubah
   pivot_omzet: { id:'1Ag2wEb_jP4R2RcN-fI-Em7LiDcIZwSf6PweJuXic9QM', sheet:'PIVOT', range:'J10:K500', headers:0 },
@@ -405,7 +464,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v21';
+var CACHE_KEY = 'exec_dash_v22';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -741,6 +800,7 @@ var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
   kesimpulan:{hari_kerja:0,hari_kerja_b3:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0}, // sheet KESIMPULAN: B21 (hari kerja, fallback B3), B8, B23, B24, B26, C25, C26
   forecast_bulanan:{hari:0,target_bulan:0,found:false}, // Target Perusahaan resmi per bulan (tabel FORECAST)
+  jasa:[], // [{ym,cat}] baris survey CS (Data Deals Survey), semua bulan, ringkas
   data_pelanggan:[], // Data Harian Pelanggan (REPORT V.2 A126:E200) — kolom JUMLAH, dipakai Tren Harian & Per Pekan
   ads:{toko:{real:0,fc:0,ym:'',found:false},proyek:{real:0,fc:0,ym:'',found:false}}, // biaya iklan (tab toko/proyek)
   km:{found:false,potensi:0,terlaksana:0,target:0}, // Kumasindo (Database Dashboard)
@@ -779,6 +839,7 @@ function loadData(force){
     gviz(SHEETS.ads_toko).then(function(t){return parseBiayaIklanAkun(t,'06.1107');}).then(function(v){D.ads.toko=v;}).catch(function(err){console.error('[Iklan Toko] GAGAL:',err);}),
     gviz(SHEETS.ads_proyek).then(function(t){return parseBiayaIklanAkun(t,'06.1301');}).then(function(v){D.ads.proyek=v;}).catch(function(err){console.error('[Iklan Proyek] GAGAL:',err);}),
     gviz(SHEETS.km_db).then(parseKumasindoDb).then(function(v){D.km=v;}).catch(function(err){console.error('[Kumasindo] GAGAL:',err);}),
+    gviz(SHEETS.jasa_survey).then(parseJasaSurvey).then(function(v){D.jasa=v;D.jasa_err='';}).catch(function(err){console.error('[Jasa Survey] GAGAL:',err);D.jasa=[];D.jasa_err=String(err&&err.message||err);}),
     gviz(SHEETS.pivot_tx).then(parsePivotTx).then(function(v){D.pivot_tx=v;}),
     gviz(SHEETS.pivot_omzet).then(parsePivotOmzet).then(function(v){D.pivot_omzet=v;}),
     gviz(SHEETS.leads).then(parseLeads).then(function(v){D.leads=v;}),
@@ -1106,17 +1167,19 @@ function renderSectionNotes(d){
   // ditampilin ke mana-mana, aman gak dipanggil.
 }
 
-// ── HALAMAN: 1 = Report CEO, 2 = Breakdown Data ──
+// ── HALAMAN: 1 = Report CEO, 2 = Breakdown Toko, 3 = Breakdown Jasa ──
 function showPage(n){
-  n = n===2?2:1;
+  n = (n===2||n===3)?n:1;
   document.getElementById('page-1').style.display = n===1?'block':'none';
   document.getElementById('page-2').style.display = n===2?'block':'none';
+  document.getElementById('page-3').style.display = n===3?'block':'none';
   document.getElementById('ptab-1').classList.toggle('active',n===1);
   document.getElementById('ptab-2').classList.toggle('active',n===2);
+  document.getElementById('ptab-3').classList.toggle('active',n===3);
   try{localStorage.setItem('exec_dash_page',String(n));}catch(e){}
   // chart yang dibuat saat halaman tersembunyi perlu di-resize
   try{
-    var ids=['chart-daily','chart-nota','chart-weekly'];
+    var ids=['chart-daily','chart-nota','chart-weekly','chart-jasa-cat'];
     ids.forEach(function(id){var el=document.getElementById(id);var c=el&&Chart.getChart(el);if(c)c.resize();});
   }catch(e){}
   window.scrollTo(0,0);
@@ -1130,6 +1193,7 @@ function renderAll(){
   if(lbl)lbl.textContent=ymLabel(SEL_MONTH);
   renderKPIs(data);
   renderKumasindo();
+  renderJasa();
   renderSectionNotes(data);
   renderCharts(data);
 }
@@ -1439,6 +1503,120 @@ function renderCharts(d){
   renderWeeklyChart(d);
 }
 
+
+// ── BREAKDOWN JASA — data survey CS (Data Deals Survey) ─────────────
+// Deteksi kolom lewat label header (pola yang sama dgn app CS: tanggal / kategori).
+// Dibaca per index kolom (bukan per label) supaya header kembar tidak saling timpa.
+function parseJasaSurvey(table){
+  var cols=table.cols||[];
+  var h=cols.map(function(c){return String(c.label||'').toLowerCase();});
+  function find(){for(var a=0;a<arguments.length;a++){var kw=arguments[a];for(var i=0;i<h.length;i++){if(h[i].indexOf(kw)>=0)return i;}}return -1;}
+  var cDate=find('tanggal','date','tgl','waktu','timestamp','created');
+  var cCat =find('kategori','sumber','source','jenis','tipe','channel');
+  console.log('[Jasa Survey] header:',h,'| kolom tanggal idx=',cDate,'| kategori idx=',cCat,'| baris=',(table.rows||[]).length);
+  if(cDate<0) return [];
+  var out=[];
+  (table.rows||[]).forEach(function(r){
+    var c=r.c?r.c[cDate]:null; if(!c||c.v===null||c.v===undefined) return;
+    var v=c.v, dv=null;
+    if(v instanceof Date) dv=v;
+    else{
+      var s=String(v).trim(), m;
+      if((m=s.match(/^Date\((\d+),(\d+),(\d+)/))) dv=new Date(+m[1],+m[2],+m[3]);
+      else if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) dv=new Date(+m[3],+m[2]-1,+m[1]);
+      else{var d2=new Date(s); if(!isNaN(d2)) dv=d2;}
+    }
+    if(!dv||isNaN(dv)) return;
+    var cc=(cCat>=0&&r.c[cCat]&&r.c[cCat].v!==null&&r.c[cCat].v!==undefined)?String(r.c[cCat].v).trim():'';
+    out.push({ym:dv.getFullYear()+'-'+String(dv.getMonth()+1).padStart(2,'0'),cat:cc||'Lainnya'});
+  });
+  return out;
+}
+
+var JASA_COLORS=['#F77625','#1F2128','#F5C518','#2563EB','#16A34A','#7C3AED','#DC2626','#0D9488'];
+
+function renderJasa(){
+  var kpi=document.getElementById('kpi-jasa'); if(!kpi) return;
+  var ym=nowYM();
+  var parts=ym.split('-'), py=+parts[0], pm=+parts[1]-1;
+  var prevYm=(pm===0?(py-1)+'-12':py+'-'+String(pm).padStart(2,'0'));
+  var all=D.jasa||[];
+  var cur=all.filter(function(r){return r.ym===ym;});
+  var prevN=all.filter(function(r){return r.ym===prevYm;}).length;
+  var months={}; all.forEach(function(r){months[r.ym]=(months[r.ym]||0)+1;});
+  var mKeys=Object.keys(months), nMonths=mKeys.length;
+  var avg=nMonths?Math.round(all.length/nMonths):0;
+  var total=cur.length;
+
+  var cats={}; cur.forEach(function(r){cats[r.cat]=(cats[r.cat]||0)+1;});
+  var entries=Object.keys(cats).map(function(k){return [k,cats[k]];}).sort(function(a,b){return b[1]-a[1];});
+  var top=entries[0];
+  var topPct=top&&total?Math.round(top[1]/total*100):0;
+
+  document.getElementById('jasa-src').textContent='Sumber: Data Deals Survey · bulan berjalan: '+ymLabel(ym);
+
+  // growth vs bulan lalu
+  var grow='<span class="jasa-grow-nt">Bulan lalu: '+prevN.toLocaleString('id-ID')+' survey</span>', gp=null;
+  if(prevN>0){
+    gp=Math.round((total-prevN)/prevN*100);
+    grow=gp>0?'<span class="jasa-grow-up">▲ +'+gp+'% vs bulan lalu ('+prevN+')</span>'
+        :gp<0?'<span class="jasa-grow-dn">▼ '+gp+'% vs bulan lalu ('+prevN+')</span>'
+        :'<span class="jasa-grow-nt">= sama vs bulan lalu ('+prevN+')</span>';
+  }
+  function card(ico,lbl,val,sub){return '<div class="kpi-card"><span class="kpi-ico">'+ico+'</span><span class="kpi-lbl">'+lbl+'</span><span class="kpi-val">'+esc(String(val))+'</span><span class="kpi-sub">'+sub+'</span></div>';}
+  kpi.innerHTML=
+    card('📋','Total Survey',total.toLocaleString('id-ID'),grow)+
+    card('🌟','Kategori Terbesar',top?top[0]:'—',top?(top[1].toLocaleString('id-ID')+' survey ('+topPct+'%)'):'Belum ada data')+
+    card('📈','Rata-rata Survey / Bulan',avg.toLocaleString('id-ID'),nMonths+' bulan data (semua bulan di sheet)');
+
+  // catatan ringkasan
+  var n1;
+  if(D.jasa_err&&!all.length) n1=secNote('bad','❌','Data survey gagal dimuat: '+esc(D.jasa_err)+'. Cek sheet "Data Deals Survey" masih "Anyone with the link".');
+  else if(!total) n1=secNote('info','📊','Belum ada survey untuk '+ymLabel(ym)+'.');
+  else if(prevN>0&&gp>10) n1=secNote('ok','📈','Survey bulan ini '+total+' vs '+prevN+' bulan lalu (+'+gp+'%). Volume leads CS meningkat — pastikan kapasitas follow-up memadai. <span style="opacity:.8">(Bulan ini belum selesai, bandingkan dengan hati-hati.)</span>');
+  else if(prevN>0&&gp<-10) n1=secNote('warn','📉','Survey bulan ini '+total+' vs '+prevN+' bulan lalu ('+gp+'%). Bulan ini masih berjalan, jadi penurunan bisa wajar di awal bulan. Kalau di akhir bulan masih turun, cek traffic dan iklan.');
+  else n1=secNote('info','📋',total+' survey di '+ymLabel(ym)+'.'+(prevN>0?' Setara dengan bulan lalu ('+prevN+').':''));
+  document.getElementById('note-jasa-ringkasan').innerHTML=n1;
+
+  // donut
+  destroyChart('chart-jasa-cat');
+  var cv=document.getElementById('chart-jasa-cat');
+  document.getElementById('jasa-donut-badge').textContent=entries.length+' kategori';
+  document.getElementById('jasa-cat-count').textContent=entries.length+' kategori';
+  if(!entries.length){
+    cv.parentNode.style.display='none';
+    document.getElementById('note-jasa-cat').innerHTML=secNote('info','📊','Belum ada data kategori untuk '+ymLabel(ym)+'.');
+    document.getElementById('jasa-cat-list').innerHTML='<div style="font-size:12px;color:var(--mut);padding:8px 0">Tidak ada data</div>';
+    return;
+  }
+  cv.parentNode.style.display='block';
+  var colors=entries.map(function(_,i){return JASA_COLORS[i%JASA_COLORS.length];});
+  new Chart(cv.getContext('2d'),{
+    type:'doughnut',
+    data:{labels:entries.map(function(e){return e[0];}),datasets:[{data:entries.map(function(e){return e[1];}),backgroundColor:colors,borderColor:'#FFFFFF',borderWidth:2,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:10},color:'#7A7E8A',padding:10,boxWidth:10}},
+        tooltip:{callbacks:{label:function(c){return ' '+c.label+': '+c.parsed+' ('+Math.round(c.parsed/total*100)+'%)';}}},
+        datalabels:{color:'#fff',font:{weight:'bold',size:11},textShadowBlur:4,textShadowColor:'rgba(0,0,0,.4)',anchor:'center',align:'center',
+          formatter:function(v){var p=total>0?Math.round(v/total*100):0;return p<6?'':v+'\n'+p+'%';}}
+      }}
+  });
+  // catatan kategori
+  var nC;
+  if(topPct>=60) nC=secNote('warn','⚠️','Kategori "'+esc(top[0])+'" mendominasi '+topPct+'% ('+top[1]+' dari '+total+'). Ketergantungan tinggi pada satu kategori — diversifikasi sumber leads disarankan.');
+  else if(entries.length>=4&&topPct<=35) nC=secNote('ok','✅','Distribusi sehat: '+entries.length+' kategori aktif, terbesar "'+esc(top[0])+'" hanya '+topPct+'%.');
+  else nC=secNote('info','📋',entries.length+' kategori aktif. Terbesar: "'+esc(top[0])+'" ('+topPct+'% dari '+total+' survey).');
+  document.getElementById('note-jasa-cat').innerHTML=nC;
+
+  // daftar breakdown
+  document.getElementById('jasa-cat-list').innerHTML=entries.map(function(e,i){
+    var p=total?Math.round(e[1]/total*100):0, col=colors[i];
+    return '<div class="jcat-item"><div class="jcat-dot" style="background:'+col+'"></div><div class="jcat-name">'+esc(e[0])+'</div>'
+      +'<div class="jcat-bar"><div class="jcat-fill" style="width:'+p+'%;background:'+col+'"></div></div>'
+      +'<div class="jcat-pct">'+p+'%</div><div class="jcat-cnt">'+e[1].toLocaleString('id-ID')+'</div></div>';
+  }).join('');
+}
 
 // ── JUMLAH NOTA HARIAN + TREND + IDEAL ─────────────────
 // Sumber: REPORT V.2 "Data Harian Pelanggan" — A = tanggal, I = JUMLAH nota

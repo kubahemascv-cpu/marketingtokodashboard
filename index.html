@@ -244,7 +244,7 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .jasa-wrap .kpi-card:hover{box-shadow:0 2px 4px rgba(31,33,40,.05),0 14px 34px rgba(247,118,37,.14)}
 .jasa-wrap .chart-badge{background:var(--ac-l);color:var(--ac-d)}
 .jasa-wrap .slbl.jasa-sec{padding-top:24px}
-#kpi-jasa{grid-template-columns:repeat(3,1fr)}
+#kpi-jasa{grid-template-columns:repeat(2,1fr)}
 .jasa-grow-up{color:#16A34A;font-weight:700}.jasa-grow-dn{color:#DC2626;font-weight:700}.jasa-grow-nt{color:var(--mut);font-weight:600}
 .jasa-src{font-size:10.5px;color:var(--mut);margin:-4px 0 14px;line-height:1.6}
 .jasa-donut{position:relative;height:300px}
@@ -407,7 +407,6 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
     <span class="slbl">📋 Ringkasan Performa CS</span>
     <div class="jasa-src" id="jasa-src">Sumber: Data Deals Survey — bulan berjalan</div>
     <div class="kpi-grid" id="kpi-jasa">
-      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
       <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
       <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     </div>
@@ -1556,9 +1555,6 @@ function renderJasa(){
   var all=D.jasa||[];
   var cur=all.filter(function(r){return r.ym===ym;});
   var prevN=all.filter(function(r){return r.ym===prevYm;}).length;
-  var months={}; all.forEach(function(r){months[r.ym]=(months[r.ym]||0)+1;});
-  var mKeys=Object.keys(months), nMonths=mKeys.length;
-  var avg=nMonths?Math.round(all.length/nMonths):0;
   var total=cur.length;
 
   var cats={}; cur.forEach(function(r){cats[r.cat]=(cats[r.cat]||0)+1;});
@@ -1579,8 +1575,7 @@ function renderJasa(){
   function card(ico,lbl,val,sub){return '<div class="kpi-card"><span class="kpi-ico">'+ico+'</span><span class="kpi-lbl">'+lbl+'</span><span class="kpi-val">'+esc(String(val))+'</span><span class="kpi-sub">'+sub+'</span></div>';}
   kpi.innerHTML=
     card('📋','Total Survey',total.toLocaleString('id-ID'),grow)+
-    card('🌟','Kategori Terbesar',top?top[0]:'—',top?(top[1].toLocaleString('id-ID')+' survey ('+topPct+'%)'):'Belum ada data')+
-    card('📈','Rata-rata Survey / Bulan',avg.toLocaleString('id-ID'),nMonths+' bulan data (semua bulan di sheet)');
+    card('🌟','Kategori Terbesar',top?top[0]:'—',top?(top[1].toLocaleString('id-ID')+' survey ('+topPct+'%)'):'Belum ada data');
 
   // catatan ringkasan
   var n1;

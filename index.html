@@ -365,17 +365,6 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
   </div>
   <div id="nota-media-validasi"></div>
 
-  <div class="advisor-panel">
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-      <span style="font-size:22px">🧭</span>
-      <div>
-        <div style="font-size:13px;font-weight:800;color:var(--txt)">Kesimpulan & Opsi Tindakan</div>
-        <div style="font-size:10.5px;color:var(--mut);margin-top:1px">Buat mencapai Target Perusahaan</div>
-      </div>
-    </div>
-    <div id="aov-kesimpulan"></div>
-  </div>
-
   <span class="slbl">🎯 Posisi vs Target Perusahaan</span>
   <div style="font-size:10.5px;color:var(--mut);background:var(--card2);border-radius:10px;padding:10px 12px;margin-bottom:14px;line-height:1.6">Target resmi dari manajemen (tabel FORECAST per bulan) — beda sumber dari Target Omzet di section pertama. Update otomatis tiap ganti bulan.</div>
   <div class="kpi-grid" id="kpi-target-perusahaan">
@@ -502,7 +491,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v23';
+var CACHE_KEY = 'exec_dash_v24';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -1326,7 +1315,6 @@ function renderAOVKPIs(d){
   // renderNotaMediaValidasi(d); — disembunyiin sementara, nempel sama
   // konsep "data Offline" yang belum siap jadi metrik resmi (bakal
   // dipasang lagi bareng Closing Rate Offline nanti)
-  renderAOVKesimpulan(d);
 }
 
 // ── KESIMPULAN & OPSI TINDAKAN — AOV vs Target Perusahaan ──

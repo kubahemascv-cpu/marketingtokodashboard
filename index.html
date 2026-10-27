@@ -246,6 +246,18 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .jasa-wrap .slbl.jasa-sec{padding-top:24px}
 #kpi-jasa{grid-template-columns:repeat(2,1fr)}
 .jasa-grow-up{color:#16A34A;font-weight:700}.jasa-grow-dn{color:#DC2626;font-weight:700}.jasa-grow-nt{color:var(--mut);font-weight:600}
+.jasa-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.jasa-filter label{font-size:12px;font-weight:800;color:var(--txt)}
+.jasa-filter select{font-family:var(--font);font-size:12.5px;font-weight:700;padding:9px 34px 9px 14px;border-radius:999px;border:1px solid #F9D3B3;background:#fff;color:var(--txt);cursor:pointer;min-width:190px}
+.jasa-filter select:focus{outline:2px solid var(--ac);outline-offset:1px}
+.jasa-filter-note{font-size:10.5px;color:var(--mut)}
+.jperf-wrap{overflow-x:auto}
+.jperf{width:100%;border-collapse:collapse;font-size:12.5px}
+.jperf th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);border-bottom:2px solid var(--bdr)}
+.jperf th.r,.jperf td.r{text-align:right}
+.jperf td{padding:11px 12px;border-bottom:1px solid var(--bdr);color:var(--txt)}
+.jperf tr.cur td{background:#FFF5EC;font-weight:700}
+.jperf tr.tot td{font-weight:800;border-bottom:none;border-top:2px solid var(--bdr)}
 .jasa-src{font-size:10.5px;color:var(--mut);margin:-4px 0 14px;line-height:1.6}
 .jasa-donut{position:relative;height:300px}
 .jcat-list{display:flex;flex-direction:column;gap:10px}
@@ -404,6 +416,11 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 
   <div class="page" id="page-3" style="display:none">
   <div class="jasa-wrap">
+    <div class="jasa-filter">
+      <label for="jasa-period">📅 Periode</label>
+      <select id="jasa-period" onchange="setJasaPeriod(this.value)"><option value="">Memuat...</option></select>
+      <span class="jasa-filter-note">Pilihan ini hanya berlaku di halaman Breakdown Jasa</span>
+    </div>
     <span class="slbl">📋 Ringkasan Performa CS</span>
     <div class="jasa-src" id="jasa-src">Sumber: Data Deals Survey — bulan berjalan</div>
     <div class="kpi-grid" id="kpi-jasa">
@@ -429,6 +446,15 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
         <span class="chart-badge" id="jasa-cat-count">—</span>
       </div>
       <div class="jcat-list" id="jasa-cat-list"></div>
+    </div>
+
+    <span class="slbl jasa-sec">🗓️ Performa Survey</span>
+    <div class="chart-box">
+      <div class="chart-hd">
+        <div class="chart-title">Jumlah Survey per Bulan</div>
+        <span class="chart-badge" id="jasa-perf-badge">—</span>
+      </div>
+      <div class="jperf-wrap"><table class="jperf" id="jasa-perf"></table></div>
     </div>
   </div>
   </div><!-- /page-3 -->
@@ -476,7 +502,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v22';
+var CACHE_KEY = 'exec_dash_v23';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -1547,30 +1573,64 @@ function parseJasaSurvey(table){
 
 var JASA_COLORS=['#F77625','#1F2128','#F5C518','#2563EB','#16A34A','#7C3AED','#DC2626','#0D9488'];
 
+var JASA_SEL=''; // '' = bulan berjalan, 'ALL' = semua data, 'YYYY-MM' = bulan tertentu. HANYA untuk halaman Breakdown Jasa.
+function setJasaPeriod(v){ JASA_SEL=v||''; renderJasa(); }
+
+function jasaMonthsDesc(){
+  var seen={}; (D.jasa||[]).forEach(function(r){seen[r.ym]=1;});
+  seen[nowYM()]=1; // bulan berjalan selalu ada di pilihan, walau belum ada data
+  return Object.keys(seen).sort().reverse();
+}
+function populateJasaPeriod(selVal){
+  var el=document.getElementById('jasa-period'); if(!el) return;
+  var months=jasaMonthsDesc(), now=nowYM();
+  el.innerHTML='<option value="ALL">Semua Data</option>'+months.map(function(m){
+    return '<option value="'+m+'">'+ymLabel(m)+(m===now?' (bulan ini)':'')+'</option>';}).join('');
+  el.value=selVal;
+}
+
 function renderJasa(){
   var kpi=document.getElementById('kpi-jasa'); if(!kpi) return;
-  var ym=nowYM();
-  var parts=ym.split('-'), py=+parts[0], pm=+parts[1]-1;
-  var prevYm=(pm===0?(py-1)+'-12':py+'-'+String(pm).padStart(2,'0'));
+  var now=nowYM();
   var all=D.jasa||[];
-  var cur=all.filter(function(r){return r.ym===ym;});
-  var prevN=all.filter(function(r){return r.ym===prevYm;}).length;
+  var sel=JASA_SEL||now;
+  var isAll=(sel==='ALL');
+  if(!isAll&&jasaMonthsDesc().indexOf(sel)<0){ sel=now; JASA_SEL=''; }
+  var isCurrent=(!isAll&&sel===now);
+  var periodLabel=isAll?'Semua Data':ymLabel(sel);
+  populateJasaPeriod(sel);
+
+  var cur=isAll?all:all.filter(function(r){return r.ym===sel;});
+  var prevYm=null, prevN=0;
+  if(!isAll){
+    var pp=sel.split('-'), py=+pp[0], pm=+pp[1]-1;
+    prevYm=(pm===0?(py-1)+'-12':py+'-'+String(pm).padStart(2,'0'));
+    prevN=all.filter(function(r){return r.ym===prevYm;}).length;
+  }
   var total=cur.length;
+  var monthsSeen={}; cur.forEach(function(r){monthsSeen[r.ym]=(monthsSeen[r.ym]||0)+1;});
+  var nMonths=Object.keys(monthsSeen).length;
+  var prevWord=isCurrent?'bulan lalu':'bulan sebelumnya';
 
   var cats={}; cur.forEach(function(r){cats[r.cat]=(cats[r.cat]||0)+1;});
   var entries=Object.keys(cats).map(function(k){return [k,cats[k]];}).sort(function(a,b){return b[1]-a[1];});
   var top=entries[0];
   var topPct=top&&total?Math.round(top[1]/total*100):0;
 
-  document.getElementById('jasa-src').textContent='Sumber: Data Deals Survey · bulan berjalan: '+ymLabel(ym);
+  document.getElementById('jasa-src').textContent='Sumber: Data Deals Survey · periode: '+periodLabel+(isCurrent?' (bulan berjalan)':'');
 
-  // growth vs bulan lalu
-  var grow='<span class="jasa-grow-nt">Bulan lalu: '+prevN.toLocaleString('id-ID')+' survey</span>', gp=null;
-  if(prevN>0){
-    gp=Math.round((total-prevN)/prevN*100);
-    grow=gp>0?'<span class="jasa-grow-up">▲ +'+gp+'% vs bulan lalu ('+prevN+')</span>'
-        :gp<0?'<span class="jasa-grow-dn">▼ '+gp+'% vs bulan lalu ('+prevN+')</span>'
-        :'<span class="jasa-grow-nt">= sama vs bulan lalu ('+prevN+')</span>';
+  // sub-teks Total Survey
+  var grow, gp=null;
+  if(isAll){
+    grow='<span class="jasa-grow-nt">'+nMonths+' bulan data</span>';
+  } else {
+    grow='<span class="jasa-grow-nt">'+prevWord[0].toUpperCase()+prevWord.slice(1)+': '+prevN.toLocaleString('id-ID')+' survey</span>';
+    if(prevN>0){
+      gp=Math.round((total-prevN)/prevN*100);
+      grow=gp>0?'<span class="jasa-grow-up">▲ +'+gp+'% vs '+prevWord+' ('+prevN+')</span>'
+          :gp<0?'<span class="jasa-grow-dn">▼ '+gp+'% vs '+prevWord+' ('+prevN+')</span>'
+          :'<span class="jasa-grow-nt">= sama vs '+prevWord+' ('+prevN+')</span>';
+    }
   }
   function card(ico,lbl,val,sub){return '<div class="kpi-card"><span class="kpi-ico">'+ico+'</span><span class="kpi-lbl">'+lbl+'</span><span class="kpi-val">'+esc(String(val))+'</span><span class="kpi-sub">'+sub+'</span></div>';}
   kpi.innerHTML=
@@ -1578,13 +1638,29 @@ function renderJasa(){
     card('🌟','Kategori Terbesar',top?top[0]:'—',top?(top[1].toLocaleString('id-ID')+' survey ('+topPct+'%)'):'Belum ada data');
 
   // catatan ringkasan
-  var n1;
+  var n1, early=isCurrent?' <span style="opacity:.8">(Bulan ini belum selesai, bandingkan dengan hati-hati.)</span>':'';
   if(D.jasa_err&&!all.length) n1=secNote('bad','❌','Data survey gagal dimuat: '+esc(D.jasa_err)+'. Cek sheet "Data Deals Survey" masih "Anyone with the link".');
-  else if(!total) n1=secNote('info','📊','Belum ada survey untuk '+ymLabel(ym)+'.');
-  else if(prevN>0&&gp>10) n1=secNote('ok','📈','Survey bulan ini '+total+' vs '+prevN+' bulan lalu (+'+gp+'%). Volume leads CS meningkat — pastikan kapasitas follow-up memadai. <span style="opacity:.8">(Bulan ini belum selesai, bandingkan dengan hati-hati.)</span>');
-  else if(prevN>0&&gp<-10) n1=secNote('warn','📉','Survey bulan ini '+total+' vs '+prevN+' bulan lalu ('+gp+'%). Bulan ini masih berjalan, jadi penurunan bisa wajar di awal bulan. Kalau di akhir bulan masih turun, cek traffic dan iklan.');
-  else n1=secNote('info','📋',total+' survey di '+ymLabel(ym)+'.'+(prevN>0?' Setara dengan bulan lalu ('+prevN+').':''));
+  else if(!total) n1=secNote('info','📊','Belum ada survey untuk '+periodLabel+'.');
+  else if(isAll) n1=secNote('info','📋',total.toLocaleString('id-ID')+' survey dari '+nMonths+' bulan data.');
+  else if(prevN>0&&gp>10) n1=secNote('ok','📈','Survey '+periodLabel+': '+total+' vs '+prevN+' '+prevWord+' (+'+gp+'%). Volume leads CS meningkat — pastikan kapasitas follow-up memadai.'+early);
+  else if(prevN>0&&gp<-10) n1=secNote('warn','📉','Survey '+periodLabel+': '+total+' vs '+prevN+' '+prevWord+' ('+gp+'%).'+(isCurrent?' Bulan ini masih berjalan, jadi penurunan bisa wajar di awal bulan. Kalau di akhir bulan masih turun, cek traffic dan iklan.':' Cek traffic dan iklan di bulan itu.'));
+  else n1=secNote('info','📋',total+' survey di '+periodLabel+'.'+(prevN>0?' Setara dengan '+prevWord+' ('+prevN+').':''));
   document.getElementById('note-jasa-ringkasan').innerHTML=n1;
+
+  // tabel Performa Survey: jumlah survey per bulan pada periode terpilih
+  var perfMonths=isAll?Object.keys(monthsSeen).sort().reverse():[sel];
+  var perfEl=document.getElementById('jasa-perf');
+  document.getElementById('jasa-perf-badge').textContent=perfMonths.length+' bulan';
+  if(!all.length){
+    perfEl.innerHTML='<tbody><tr><td style="color:var(--mut)">Belum ada data survey.</td></tr></tbody>';
+  } else {
+    var perfRows=perfMonths.map(function(m){
+      var n=all.filter(function(r){return r.ym===m;}).length;
+      return '<tr'+(m===now?' class="cur"':'')+'><td>'+ymLabel(m)+(m===now?' <span style="font-weight:600;color:var(--mut)">(bulan ini)</span>':'')+'</td><td class="r">'+n.toLocaleString('id-ID')+'</td></tr>';
+    }).join('');
+    var totRow=(isAll&&perfMonths.length>1)?'<tr class="tot"><td>Total</td><td class="r">'+total.toLocaleString('id-ID')+'</td></tr>':'';
+    perfEl.innerHTML='<thead><tr><th>Bulan</th><th class="r">Jumlah Survey</th></tr></thead><tbody>'+perfRows+totRow+'</tbody>';
+  }
 
   // donut
   destroyChart('chart-jasa-cat');
@@ -1593,7 +1669,7 @@ function renderJasa(){
   document.getElementById('jasa-cat-count').textContent=entries.length+' kategori';
   if(!entries.length){
     cv.parentNode.style.display='none';
-    document.getElementById('note-jasa-cat').innerHTML=secNote('info','📊','Belum ada data kategori untuk '+ymLabel(ym)+'.');
+    document.getElementById('note-jasa-cat').innerHTML=secNote('info','📊','Belum ada data kategori untuk '+periodLabel+'.');
     document.getElementById('jasa-cat-list').innerHTML='<div style="font-size:12px;color:var(--mut);padding:8px 0">Tidak ada data</div>';
     return;
   }

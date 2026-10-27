@@ -3,7 +3,7 @@
 // punya Service Worker, jadi gak pernah dikenali Android sebagai app
 // yang bisa diinstall permanen — cuma jadi bookmark biasa.
 
-const CACHE = 'exec-dash-v55';
+const CACHE = 'exec-dash-v56';
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -36,9 +36,9 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
 
-  // Data live dari Google Sheets (JSONP/gviz, 4 sumber): selalu
+  // Data live dari Google Sheets (JSONP/gviz + Apps Script Leads Jasa): selalu
   // langsung ke internet, jangan pernah di-cache.
-  if (/docs\.google\.com|googleapis\.com/.test(e.request.url)) {
+  if (/docs\.google\.com|googleapis\.com|script\.google\.com|script\.googleusercontent\.com/.test(e.request.url)) {
     e.respondWith(fetch(e.request));
     return;
   }

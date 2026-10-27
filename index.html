@@ -246,6 +246,10 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .jasa-wrap .slbl.jasa-sec{padding-top:24px}
 #kpi-jasa{grid-template-columns:repeat(2,1fr)}
 .jasa-grow-up{color:#16A34A;font-weight:700}.jasa-grow-dn{color:#DC2626;font-weight:700}.jasa-grow-nt{color:var(--mut);font-weight:600}
+.jasa-pipe .kpi-grid{margin-bottom:12px}
+#kpi-pipeline{grid-template-columns:repeat(5,1fr)}
+@media(max-width:1200px){#kpi-pipeline{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:750px){#kpi-pipeline{grid-template-columns:repeat(2,1fr)}}
 .jasa-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .jasa-filter label{font-size:12px;font-weight:800;color:var(--txt)}
 .jasa-filter select{font-family:var(--font);font-size:12.5px;font-weight:700;padding:9px 34px 9px 14px;border-radius:999px;border:1px solid #F9D3B3;background:#fff;color:var(--txt);cursor:pointer;min-width:190px}
@@ -404,11 +408,24 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
   </div><!-- /page-2 -->
 
   <div class="page" id="page-3" style="display:none">
+  <div class="jasa-wrap jasa-pipe">
+    <span class="slbl">🧭 Pipeline Bisnis Jasa</span>
+    <div class="jasa-src" id="pipe-src">Bulan berjalan — tidak terpengaruh pilihan periode di bawah.</div>
+    <div class="kpi-grid" id="kpi-pipeline">
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    </div>
+    <div id="note-pipeline"></div>
+  </div>
+
   <div class="jasa-wrap">
     <div class="jasa-filter">
       <label for="jasa-period">📅 Periode</label>
       <select id="jasa-period" onchange="setJasaPeriod(this.value)"><option value="">Memuat...</option></select>
-      <span class="jasa-filter-note">Pilihan ini hanya berlaku di halaman Breakdown Jasa</span>
+      <span class="jasa-filter-note">Berlaku untuk section di bawah ini saja. Pipeline di atas dan halaman lain tetap bulan berjalan.</span>
     </div>
     <span class="slbl">📋 Ringkasan Performa CS</span>
     <div class="jasa-src" id="jasa-src">Sumber: Data Deals Survey — bulan berjalan</div>
@@ -482,6 +499,8 @@ var SHEETS = {
   // Sheet 3: PIVOT col D (tanggal) & E (jumlah transaksi/nota harian) mulai baris 10
   // Breakdown Jasa: tab 'Data Deals Survey' (spreadsheet CS), header di baris 1
   jasa_survey: { id:'1jquRvLJgnrgM7VcZ7zU4j8rhSr8xIl64DmqYY_VSUeU', sheet:'Data Deals Survey', headers:1 },
+  // Closing Deal (Pipeline Jasa): tab Performa Bulanan, kolom D = Jumlah Deals, baris = nama bulan
+  jasa_deal: { id:'1p13SyHmPIULD3rVdzYIYLq4A8Nd9d7A5lNu_ud2STjQ', gid:1694250830, headers:1 },
   pivot_tx: { id:'1Ag2wEb_jP4R2RcN-fI-Em7LiDcIZwSf6PweJuXic9QM', sheet:'PIVOT', range:'D10:E500', headers:0 },
   // Sheet 3: PIVOT col J (tanggal) & K (omzet harian) mulai baris 10 — dipakai Tren Harian, TIDAK diubah
   pivot_omzet: { id:'1Ag2wEb_jP4R2RcN-fI-Em7LiDcIZwSf6PweJuXic9QM', sheet:'PIVOT', range:'J10:K500', headers:0 },
@@ -491,7 +510,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v24';
+var CACHE_KEY = 'exec_dash_v25';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -827,6 +846,8 @@ var D={
   report_now:{},   // current month KPIs (REPORT V.2: Omset Real, Forecast, Hari Kerja, Deal Sales)
   kesimpulan:{hari_kerja:0,hari_kerja_b3:0,jumlah_nota:0,aov:0,deal_sales:0,target_omzet:0,nota_ideal_c26:0,ideal_aov:0}, // sheet KESIMPULAN: B21 (hari kerja, fallback B3), B8, B23, B24, B26, C25, C26
   forecast_bulanan:{hari:0,target_bulan:0,found:false}, // Target Perusahaan resmi per bulan (tabel FORECAST)
+  jasa_deal:null, // {ym,found,deals} Closing Deal bulan berjalan (Performa Bulanan kol D)
+  jasa_lead:null, // {ym,ok,total,err} Lead Masuk bulan berjalan (Apps Script Leads Jasa)
   jasa:[], // [{ym,cat}] baris survey CS (Data Deals Survey), semua bulan, ringkas
   data_pelanggan:[], // Data Harian Pelanggan (REPORT V.2 A126:E200) — kolom JUMLAH, dipakai Tren Harian & Per Pekan
   ads:{toko:{real:0,fc:0,ym:'',found:false},proyek:{real:0,fc:0,ym:'',found:false}}, // biaya iklan (tab toko/proyek)
@@ -867,6 +888,8 @@ function loadData(force){
     gviz(SHEETS.ads_proyek).then(function(t){return parseBiayaIklanAkun(t,'06.1301');}).then(function(v){D.ads.proyek=v;}).catch(function(err){console.error('[Iklan Proyek] GAGAL:',err);}),
     gviz(SHEETS.km_db).then(parseKumasindoDb).then(function(v){D.km=v;}).catch(function(err){console.error('[Kumasindo] GAGAL:',err);}),
     gviz(SHEETS.jasa_survey).then(parseJasaSurvey).then(function(v){D.jasa=v;D.jasa_err='';}).catch(function(err){console.error('[Jasa Survey] GAGAL:',err);D.jasa=[];D.jasa_err=String(err&&err.message||err);}),
+    gviz(SHEETS.jasa_deal).then(parseJasaDeal).then(function(v){D.jasa_deal=v;}).catch(function(err){console.error('[Jasa Deal] GAGAL:',err);D.jasa_deal={ym:nowYM(),found:false,deals:0,err:String(err&&err.message||err)};}),
+    fetchJasaLeads().then(function(v){D.jasa_lead=v;}).catch(function(err){console.error('[Jasa Lead] GAGAL:',err);D.jasa_lead={ym:nowYM(),ok:false,total:0,err:String(err&&err.message||err)};}),
     gviz(SHEETS.pivot_tx).then(parsePivotTx).then(function(v){D.pivot_tx=v;}),
     gviz(SHEETS.pivot_omzet).then(parsePivotOmzet).then(function(v){D.pivot_omzet=v;}),
     gviz(SHEETS.leads).then(parseLeads).then(function(v){D.leads=v;}),
@@ -1221,6 +1244,7 @@ function renderAll(){
   renderKPIs(data);
   renderKumasindo();
   renderJasa();
+  renderPipeline();
   renderSectionNotes(data);
   renderCharts(data);
 }
@@ -1688,6 +1712,87 @@ function renderJasa(){
       +'<div class="jcat-bar"><div class="jcat-fill" style="width:'+p+'%;background:'+col+'"></div></div>'
       +'<div class="jcat-pct">'+p+'%</div><div class="jcat-cnt">'+e[1].toLocaleString('id-ID')+'</div></div>';
   }).join('');
+}
+
+// ── PIPELINE BISNIS JASA (bulan berjalan, TIDAK ikut dropdown periode) ──
+// Lead Masuk  : app Leads Jasa (Apps Script, action=range) — jumlah baris lead bulan ini
+// Closing Survey: Data Deals Survey bulan ini (D.jasa)
+// Closing Deal  : tab "Performa Bulanan", kolom D (Jumlah Deals), baris nama bulan berjalan
+var JASA_LEADS_URL='https://script.google.com/macros/s/AKfycbxSbswMK8dkhfj1nzq_huVEAr_igLsCkzQcxHmkPw2mqoxCaXnc_msRyuz1axWDBQQMJQ/exec';
+var JASA_LEADS_TOKEN='leadsjasa';
+
+function fetchJasaLeads(){
+  var ym=nowYM(), p=ym.split('-'), y=+p[0], m=+p[1];
+  var last=new Date(y,m,0).getDate();
+  var from=ym+'-01', to=ym+'-'+String(last).padStart(2,'0');
+  var url=JASA_LEADS_URL+'?action=range&token='+encodeURIComponent(JASA_LEADS_TOKEN)+'&from='+from+'&to='+to+'&cb='+Date.now();
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timer=setTimeout(function(){if(ctl)ctl.abort();},20000);
+  return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(r){return r.json();}).then(function(j){
+    clearTimeout(timer);
+    if(!j||!j.ok) throw new Error((j&&j.error)||'Apps Script Leads Jasa menolak permintaan');
+    if(!j.rows) throw new Error('Apps Script Leads Jasa belum versi terbaru (action range belum ada)');
+    console.log('[Jasa Lead] bulan',ym,'total lead =',j.rows.length);
+    return {ym:ym,ok:true,total:j.rows.length};
+  }).catch(function(e){clearTimeout(timer);throw e;});
+}
+
+function parseJasaDeal(table){
+  var NAME=MONTHS_ID[parseInt(nowYM().split('-')[1],10)-1].toLowerCase();
+  var found=false, deals=0;
+  (table.rows||[]).forEach(function(r){
+    if(found) return;
+    var a=r.c&&r.c[0]&&r.c[0].v; if(a===null||a===undefined) return;
+    if(String(a).trim().toLowerCase()!==NAME) return;
+    var d=r.c[3]&&r.c[3].v;
+    found=true; deals=parseNumStr(d===null||d===undefined?0:d);
+  });
+  console.log('[Jasa Deal] baris',NAME,'ditemukan=',found,'| Jumlah Deals (kol D)=',deals,'| baris tabel=',(table.rows||[]).length);
+  return {ym:nowYM(),found:found,deals:deals};
+}
+
+function renderPipeline(){
+  var el=document.getElementById('kpi-pipeline'); if(!el) return;
+  var ym=nowYM();
+  var L=D.jasa_lead&&D.jasa_lead.ym===ym?D.jasa_lead:null;
+  var DL=D.jasa_deal&&D.jasa_deal.ym===ym?D.jasa_deal:null;
+  var lead=(L&&L.ok)?L.total:null;
+  var survey=(D.jasa||[]).filter(function(r){return r.ym===ym;}).length;
+  var surveyOk=!D.jasa_err||(D.jasa||[]).length>0;
+  var deal=(DL&&DL.found)?DL.deals:null;
+
+  document.getElementById('pipe-src').textContent='Bulan berjalan: '+ymLabel(ym)+' — tidak terpengaruh pilihan periode di bawah.';
+
+  function pctTxt(n,d){ return (n/d*100).toFixed(1).replace('.',',')+'%'; }
+  function card(ico,lbl,val,sub){return '<div class="kpi-card"><span class="kpi-ico">'+ico+'</span><span class="kpi-lbl">'+lbl+'</span><span class="kpi-val">'+esc(String(val))+'</span><span class="kpi-sub">'+sub+'</span></div>';}
+  var nf=function(n){return n.toLocaleString('id-ID');};
+
+  // Rasio Survey = Closing Survey ÷ Lead Masuk ; Rasio Deal = Closing Deal ÷ Closing Survey
+  var rs=null, rsSub='Closing Survey ÷ Lead Masuk';
+  if(lead===null) rsSub='Lead Masuk belum terbaca';
+  else if(lead===0) rsSub='Belum ada lead bulan ini';
+  else if(surveyOk){ rs=pctTxt(survey,lead); rsSub='Closing Survey ÷ Lead Masuk ('+nf(survey)+' ÷ '+nf(lead)+')'; }
+  var rd=null, rdSub='Closing Deal ÷ Closing Survey';
+  if(deal===null) rdSub='Closing Deal belum terbaca';
+  else if(survey===0) rdSub='Belum ada survey bulan ini';
+  else { rd=pctTxt(deal,survey); rdSub='Closing Deal ÷ Closing Survey ('+nf(deal)+' ÷ '+nf(survey)+')'; }
+
+  el.innerHTML=
+    card('📥','Lead Masuk',lead===null?'—':nf(lead),lead===null?'Gagal dimuat dari Leads Jasa':'Leads Jasa · Dengan + Tanpa Kode')+
+    card('📋','Closing Survey',surveyOk?nf(survey):'—',surveyOk?'Data Deals Survey':'Gagal dimuat')+
+    card('🤝','Closing Deal',deal===null?'—':nf(deal),deal===null?'Gagal dimuat dari Performa Bulanan':'Performa Bulanan · Jumlah Deals')+
+    card('🎯','Rasio Survey',rs===null?'—':rs,rsSub)+
+    card('🏁','Rasio Deal',rd===null?'—':rd,rdSub);
+
+  // catatan
+  var msgs=[];
+  if(L===null||!L.ok) msgs.push(secNote('bad','❌','Lead Masuk gagal dimuat'+(D.jasa_lead&&D.jasa_lead.err?': '+esc(D.jasa_lead.err):'')+'. Rasio Survey belum bisa dihitung.'));
+  if(DL===null||!DL.found) msgs.push(secNote('bad','❌','Closing Deal tidak terbaca: baris "'+MONTHS_ID[parseInt(ym.split('-')[1],10)-1]+'" di tab Performa Bulanan tidak ditemukan atau sheet tidak bisa diakses'+(D.jasa_deal&&D.jasa_deal.err?' ('+esc(D.jasa_deal.err)+')':'')+'.'));
+  if(!msgs.length){
+    var warn=(rs!==null&&survey>lead)||(rd!==null&&deal>survey);
+    msgs.push(secNote(warn?'warn':'info',warn?'⚠️':'ℹ️',(warn?'Ada rasio di atas 100%. ':'')+'Rasio ini membandingkan jumlah kejadian di bulan yang sama, bukan nasib kelompok yang sama: survey dan deal bulan ini bisa berasal dari lead atau survey bulan lalu. Di awal bulan angkanya bisa melompat jauh.'));
+  }
+  document.getElementById('note-pipeline').innerHTML=msgs.join('');
 }
 
 // ── JUMLAH NOTA HARIAN + TREND + IDEAL ─────────────────

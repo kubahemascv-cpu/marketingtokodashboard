@@ -1327,7 +1327,7 @@ function renderKumasindo(){
 }
 
 // ── KONSOLIDASI (Report CEO, paling bawah) ──
-// Omzet = Deal Sales tiap divisi (sama dengan ukuran "Pencapaian Deal Sales" di atas).
+// Ukuran = Deal Sales (Kubah Emas) + Deal Project (Kumasindo, Omzet Potensi Proyek) — kemampuan marketing meng-deal-kan, BUKAN cash masuk (Terlaksana).
 // Target Konsolidasi = Target Kubah Emas + Target Kumasindo. Ikut bulan terpilih di header.
 function renderKonsolidasi(d){
   var box=document.getElementById('kpi-kons'); if(!box) return;
@@ -1345,13 +1345,13 @@ function renderKonsolidasi(d){
   // persentase = pencapaian tiap divisi terhadap TARGET DIVISINYA SENDIRI (bukan porsi dari total)
   var ach=function(x,t){return t>0?pct(x,t).toFixed(1).replace('.',',')+'% dari target':'Target belum terbaca';};
   box.innerHTML=
-    kpiCard('🏪','Omzet Kubah Emas',fmt(keDeal),ach(keDeal,keTarget),null,null,'',keTarget?'Target: '+fmt(keTarget):'')+
-    kpiCard('🏗️','Omzet Kumasindo',kmOk?fmt(kmDeal):'—',kmOk?ach(kmDeal,kmTarget):'Data belum terbaca',null,null,'',kmTarget?'Target: '+fmt(kmTarget):'')+
-    kpiCard('💰','Total Omzet Konsolidasi',fmt(total),'Deal Sales Kubah Emas + Kumasindo',null,null,'hero',complete?'Target Konsolidasi: '+fmt(target):'')+
+    kpiCard('🏪','Deal Sales Kubah Emas',fmt(keDeal),ach(keDeal,keTarget),null,null,'',keTarget?'Target: '+fmt(keTarget):'')+
+    kpiCard('🏗️','Deal Project Kumasindo',kmOk?fmt(kmDeal):'—',kmOk?ach(kmDeal,kmTarget):'Data belum terbaca',null,null,'',kmTarget?'Target: '+fmt(kmTarget):'')+
+    kpiCard('💰','Total Deal Konsolidasi',fmt(total),'Deal Sales + Deal Project',null,null,'hero',complete?'Target Konsolidasi: '+fmt(target):'')+
     kpiCard('📈','Pencapaian vs Target Konsolidasi',complete?p.toFixed(1).replace('.',',')+'%':'—',complete?fmt(total)+' / '+fmt(target):'Belum bisa dihitung: data/target salah satu divisi belum lengkap',null,complete?p:null,complete?cls:'');
   var msgs=[];
   if(!keOk) msgs.push('Target Perusahaan Kubah Emas (tabel FORECAST) bulan '+ymLabel(ym)+' belum terbaca, jadi persentase konsolidasi belum bisa dihitung.');
-  if(!kmOk) msgs.push('Data Kumasindo bulan '+ymLabel(ym)+' belum terbaca, jadi Total Omzet hanya berisi Kubah Emas dan persentase konsolidasi belum bisa dihitung.');
+  if(!kmOk) msgs.push('Data Kumasindo bulan '+ymLabel(ym)+' belum terbaca, jadi Total Deal hanya berisi Kubah Emas dan persentase konsolidasi belum bisa dihitung.');
   else if(!kmTarget) msgs.push('Target Kumasindo bulan '+ymLabel(ym)+' belum diisi, jadi persentase konsolidasi belum bisa dihitung.');
   var n=document.getElementById('note-kons');
   if(n) n.innerHTML=msgs.map(function(m){return '<div class="sec-note warn" style="margin:12px 0 0"><span class="sec-note-ico">⚠️</span><span>'+esc(m)+'</span></div>';}).join('');

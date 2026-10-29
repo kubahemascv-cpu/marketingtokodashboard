@@ -227,6 +227,9 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .biz .slbl{padding-top:0}
 .biz-ke{background:#FFFBEA;border-color:#F8E6A4}
 .biz-km{--ac:#F77625;--ac-d:#C2540F;--ac-l:#FFEEDF;--ac-hi:#FF9A55;background:#FFF5EC;border-color:#F9D3B3}
+.biz-kons{background:#F1F2F6;border-color:#D9DCE6}
+#kpi-kons{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1100px){#kpi-kons{grid-template-columns:repeat(2,1fr)}}
 .biz-km .slbl::before{background:var(--ac)}
 .biz-km .kpi-ico{background:var(--ac-l)}
 .biz-km .kpi-card.hero{background:radial-gradient(120% 140% at 100% 0%,rgba(247,118,37,.30),transparent 55%),var(--ch)}
@@ -353,6 +356,17 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     </div>
     <div id="note-km"></div>
+  </div>
+
+  <div class="biz biz-kons">
+    <span class="slbl">🏛️ Konsolidasi Kubah Emas + Kumasindo</span>
+    <div class="kpi-grid" id="kpi-kons">
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
+    </div>
+    <div id="note-kons"></div>
   </div>
 
   <!-- CHARTS + DIAGNOSA PER SECTION -->
@@ -1243,6 +1257,7 @@ function renderAll(){
   if(lbl)lbl.textContent=ymLabel(SEL_MONTH);
   renderKPIs(data);
   renderKumasindo();
+  renderKonsolidasi(data);
   renderJasa();
   renderPipeline();
   renderSectionNotes(data);
@@ -1302,6 +1317,34 @@ function renderKumasindo(){
     else if(!(D.ads&&D.ads.proyek&&D.ads.proyek.found)) msg='Biaya Iklan Kumasindo belum terbaca dari tab proyek (akun 06.1301).';
     note.innerHTML=msg?'<div class="sec-note warn" style="margin:12px 0 0"><span class="sec-note-ico">⚠️</span><span>'+msg+'</span></div>':'';
   }
+}
+
+// ── KONSOLIDASI (Report CEO, paling bawah) ──
+// Omzet = Deal Sales tiap divisi (sama dengan ukuran "Pencapaian Deal Sales" di atas).
+// Target Konsolidasi = Target Kubah Emas + Target Kumasindo. Ikut bulan terpilih di header.
+function renderKonsolidasi(d){
+  var box=document.getElementById('kpi-kons'); if(!box) return;
+  var ym=SEL_MONTH, km=D.km||{};
+  var keTarget=+d.target||0, keDeal=+d.deal_sales||0;
+  var kmOk=!!(km.found&&km.ym===ym);
+  var kmTarget=kmOk?(+km.target||0):0, kmDeal=kmOk?(+km.potensi||0):0;
+  var keOk=keTarget>0;
+  var total=keDeal+kmDeal, target=keTarget+kmTarget;
+  var complete=keOk&&kmOk&&kmTarget>0;   // persen hanya dihitung kalau KEDUA divisi lengkap (omzet + target)
+  var p=complete?pct(total,target):0;
+  var cls=p>=100?'good':p>=80?'warn':'bad';
+  var share=function(x){return total>0?(x/total*100).toFixed(1).replace('.',',')+'% dari total':'';};
+  box.innerHTML=
+    kpiCard('🏪','Omzet Kubah Emas',fmt(keDeal),share(keDeal),null,null,'',keTarget?'Target: '+fmt(keTarget):'')+
+    kpiCard('🏗️','Omzet Kumasindo',kmOk?fmt(kmDeal):'—',kmOk?share(kmDeal):'Data belum terbaca',null,null,'',kmTarget?'Target: '+fmt(kmTarget):'')+
+    kpiCard('💰','Total Omzet Konsolidasi',fmt(total),'Deal Sales Kubah Emas + Kumasindo',null,null,'hero',complete?'Target Konsolidasi: '+fmt(target):'')+
+    kpiCard('📈','Pencapaian vs Target Konsolidasi',complete?String(p).replace('.',',')+'%':'—',complete?fmt(total)+' / '+fmt(target):'Belum bisa dihitung: data/target salah satu divisi belum lengkap',null,complete?p:null,complete?cls:'');
+  var msgs=[];
+  if(!keOk) msgs.push('Target Kubah Emas bulan '+ymLabel(ym)+' belum terbaca, jadi persentase konsolidasi belum bisa dihitung.');
+  if(!kmOk) msgs.push('Data Kumasindo bulan '+ymLabel(ym)+' belum terbaca, jadi Total Omzet hanya berisi Kubah Emas dan persentase konsolidasi belum bisa dihitung.');
+  else if(!kmTarget) msgs.push('Target Kumasindo bulan '+ymLabel(ym)+' belum diisi, jadi persentase konsolidasi belum bisa dihitung.');
+  var n=document.getElementById('note-kons');
+  if(n) n.innerHTML=msgs.map(function(m){return '<div class="sec-note warn" style="margin:12px 0 0"><span class="sec-note-ico">⚠️</span><span>'+esc(m)+'</span></div>';}).join('');
 }
 
 // ── MARKETING KPI ROW (sisa: Cost per Lead, Target Harian, Real Harian) ──

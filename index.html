@@ -227,7 +227,14 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .biz .slbl{padding-top:0}
 .biz-ke{background:#FFFBEA;border-color:#F8E6A4}
 .biz-km{--ac:#F77625;--ac-d:#C2540F;--ac-l:#FFEEDF;--ac-hi:#FF9A55;background:#FFF5EC;border-color:#F9D3B3}
-.biz-kons{background:#F1F2F6;border-color:#D9DCE6}
+.biz-kons{--ac:#4F46E5;--ac-d:#3730A3;--ac-l:#E3E5FF;--ac-hi:#A5B4FC;background:#EEF0FF;border-color:#C7CCF5}
+.biz-kons .slbl{color:var(--ac-d)}
+.biz-kons .slbl::before{background:var(--ac)}
+.biz-kons .kpi-ico{background:var(--ac-l)}
+.biz-kons .kpi-card.hero{background:radial-gradient(120% 140% at 100% 0%,rgba(79,70,229,.40),transparent 55%),var(--ch)}
+.biz-kons .kpi-card.hero .kpi-ico{background:rgba(79,70,229,.30)}
+.biz-kons .kpi-card.hero .kpi-val{color:var(--ac-hi)}
+.biz-kons .kpi-card:hover{box-shadow:0 2px 4px rgba(31,33,40,.05),0 14px 34px rgba(79,70,229,.16)}
 #kpi-kons{grid-template-columns:repeat(4,1fr)}
 @media(max-width:1100px){#kpi-kons{grid-template-columns:repeat(2,1fr)}}
 .biz-km .slbl::before{background:var(--ac)}
@@ -1335,12 +1342,13 @@ function renderKonsolidasi(d){
   var complete=keOk&&kmOk&&kmTarget>0;   // persen hanya dihitung kalau KEDUA divisi lengkap (omzet + target)
   var p=complete?pct(total,target):0;
   var cls=p>=100?'good':p>=80?'warn':'bad';
-  var share=function(x){return total>0?(x/total*100).toFixed(1).replace('.',',')+'% dari total':'';};
+  // persentase = pencapaian tiap divisi terhadap TARGET DIVISINYA SENDIRI (bukan porsi dari total)
+  var ach=function(x,t){return t>0?pct(x,t).toFixed(1).replace('.',',')+'% dari target':'Target belum terbaca';};
   box.innerHTML=
-    kpiCard('🏪','Omzet Kubah Emas',fmt(keDeal),share(keDeal),null,null,'',keTarget?'Target: '+fmt(keTarget):'')+
-    kpiCard('🏗️','Omzet Kumasindo',kmOk?fmt(kmDeal):'—',kmOk?share(kmDeal):'Data belum terbaca',null,null,'',kmTarget?'Target: '+fmt(kmTarget):'')+
+    kpiCard('🏪','Omzet Kubah Emas',fmt(keDeal),ach(keDeal,keTarget),null,null,'',keTarget?'Target: '+fmt(keTarget):'')+
+    kpiCard('🏗️','Omzet Kumasindo',kmOk?fmt(kmDeal):'—',kmOk?ach(kmDeal,kmTarget):'Data belum terbaca',null,null,'',kmTarget?'Target: '+fmt(kmTarget):'')+
     kpiCard('💰','Total Omzet Konsolidasi',fmt(total),'Deal Sales Kubah Emas + Kumasindo',null,null,'hero',complete?'Target Konsolidasi: '+fmt(target):'')+
-    kpiCard('📈','Pencapaian vs Target Konsolidasi',complete?String(p).replace('.',',')+'%':'—',complete?fmt(total)+' / '+fmt(target):'Belum bisa dihitung: data/target salah satu divisi belum lengkap',null,complete?p:null,complete?cls:'');
+    kpiCard('📈','Pencapaian vs Target Konsolidasi',complete?p.toFixed(1).replace('.',',')+'%':'—',complete?fmt(total)+' / '+fmt(target):'Belum bisa dihitung: data/target salah satu divisi belum lengkap',null,complete?p:null,complete?cls:'');
   var msgs=[];
   if(!keOk) msgs.push('Target Perusahaan Kubah Emas (tabel FORECAST) bulan '+ymLabel(ym)+' belum terbaca, jadi persentase konsolidasi belum bisa dihitung.');
   if(!kmOk) msgs.push('Data Kumasindo bulan '+ymLabel(ym)+' belum terbaca, jadi Total Omzet hanya berisi Kubah Emas dan persentase konsolidasi belum bisa dihitung.');

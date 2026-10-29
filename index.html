@@ -1325,7 +1325,9 @@ function renderKumasindo(){
 function renderKonsolidasi(d){
   var box=document.getElementById('kpi-kons'); if(!box) return;
   var ym=SEL_MONTH, km=D.km||{};
-  var keTarget=+d.target||0, keDeal=+d.deal_sales||0;
+  // Target Toko = kartu "Target Perusahaan" di Breakdown Toko (tabel FORECAST kolom D),
+  // BUKAN "Target Omzet" dari KESIMPULAN. Tabel FORECAST hanya dibaca untuk bulan berjalan.
+  var keTarget=(ym===nowYM())?(+d.target_perusahaan||0):0, keDeal=+d.deal_sales||0;
   var kmOk=!!(km.found&&km.ym===ym);
   var kmTarget=kmOk?(+km.target||0):0, kmDeal=kmOk?(+km.potensi||0):0;
   var keOk=keTarget>0;
@@ -1340,7 +1342,7 @@ function renderKonsolidasi(d){
     kpiCard('💰','Total Omzet Konsolidasi',fmt(total),'Deal Sales Kubah Emas + Kumasindo',null,null,'hero',complete?'Target Konsolidasi: '+fmt(target):'')+
     kpiCard('📈','Pencapaian vs Target Konsolidasi',complete?String(p).replace('.',',')+'%':'—',complete?fmt(total)+' / '+fmt(target):'Belum bisa dihitung: data/target salah satu divisi belum lengkap',null,complete?p:null,complete?cls:'');
   var msgs=[];
-  if(!keOk) msgs.push('Target Kubah Emas bulan '+ymLabel(ym)+' belum terbaca, jadi persentase konsolidasi belum bisa dihitung.');
+  if(!keOk) msgs.push('Target Perusahaan Kubah Emas (tabel FORECAST) bulan '+ymLabel(ym)+' belum terbaca, jadi persentase konsolidasi belum bisa dihitung.');
   if(!kmOk) msgs.push('Data Kumasindo bulan '+ymLabel(ym)+' belum terbaca, jadi Total Omzet hanya berisi Kubah Emas dan persentase konsolidasi belum bisa dihitung.');
   else if(!kmTarget) msgs.push('Target Kumasindo bulan '+ymLabel(ym)+' belum diisi, jadi persentase konsolidasi belum bisa dihitung.');
   var n=document.getElementById('note-kons');

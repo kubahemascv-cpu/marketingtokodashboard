@@ -255,6 +255,13 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 .jasa-wrap .chart-badge{background:var(--ac-l);color:var(--ac-d)}
 .jasa-wrap .slbl.jasa-sec{padding-top:24px}
 #kpi-jasa{grid-template-columns:repeat(2,1fr)}
+#kpi-jlb{grid-template-columns:repeat(4,1fr)}
+.jlb-bar{display:flex;height:16px;border-radius:99px;overflow:hidden;background:var(--bdr)}
+.jlb-seg{height:100%}
+.jlb-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;font-size:12px;color:var(--txt2)}
+.jlb-legend b{color:var(--txt)}
+.jlb-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+@media(max-width:1100px){#kpi-jlb{grid-template-columns:repeat(2,1fr)}}
 .jasa-grow-up{color:#16A34A;font-weight:700}.jasa-grow-dn{color:#DC2626;font-weight:700}.jasa-grow-nt{color:var(--mut);font-weight:600}
 .jasa-pipe .kpi-grid{margin-bottom:12px}
 #kpi-pipeline{grid-template-columns:repeat(5,1fr)}
@@ -474,6 +481,19 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
       </div>
       <div class="jcat-list" id="jasa-cat-list"></div>
     </div>
+
+    <span class="slbl jasa-sec">🌱 Kontribusi Leads Baru</span>
+    <div class="jasa-src" id="jlb-src"></div>
+    <div class="kpi-grid" id="kpi-jlb"></div>
+    <div class="chart-box" id="jlb-box" style="margin-top:12px">
+      <div class="chart-hd">
+        <div class="chart-title">Asal Survey: Leads Baru vs Lainnya</div>
+        <span class="chart-badge" id="jlb-badge">—</span>
+      </div>
+      <div class="jlb-bar" id="jlb-bar"></div>
+      <div class="jlb-legend" id="jlb-legend"></div>
+    </div>
+    <div id="note-jlb" style="margin-top:12px"></div>
 
     <span class="slbl jasa-sec">🗓️ Performa Survey</span>
     <div class="chart-box">
@@ -1712,6 +1732,8 @@ function renderJasa(){
   else n1=secNote('info','📋',total+' survey di '+periodLabel+'.'+(prevN>0?' Setara dengan '+prevWord+' ('+prevN+').':''));
   document.getElementById('note-jasa-ringkasan').innerHTML=n1;
 
+  renderJasaLeadsBaru(cur,periodLabel,isCurrent);
+
   // tabel Performa Survey: jumlah survey per bulan pada periode terpilih
   var perfMonths=isAll?Object.keys(monthsSeen).sort().reverse():[sel];
   var perfEl=document.getElementById('jasa-perf');
@@ -1765,6 +1787,55 @@ function renderJasa(){
       +'<div class="jcat-bar"><div class="jcat-fill" style="width:'+p+'%;background:'+col+'"></div></div>'
       +'<div class="jcat-pct">'+p+'%</div><div class="jcat-cnt">'+e[1].toLocaleString('id-ID')+'</div></div>';
   }).join('');
+}
+
+// ── KONTRIBUSI LEADS BARU (Breakdown Jasa, ikut dropdown periode) ──
+// Leads baru = survey berkategori "Leads" (dari iklan, langsung survey)
+//            + "Follow Up bulan ini" (lead bulan ini yang di-follow up dulu, survey tetap bulan ini).
+// Kategori lain (mis. follow up bulan lalu) = bukan leads baru. Kategori diisi manual oleh CS;
+// dashboard hanya mencocokkan nama (huruf besar/kecil & tanda baca diabaikan).
+function jasaCatKey(s){
+  var n=String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  if(n==='leads'||n==='lead') return 'leads';
+  if(/^follow ?up bulan ini$/.test(n)) return 'fu';
+  return '';
+}
+function renderJasaLeadsBaru(cur,periodLabel,isCurrent){
+  var box=document.getElementById('kpi-jlb'); if(!box) return;
+  var total=cur.length, nL=0, nF=0, other={};
+  cur.forEach(function(r){
+    var k=jasaCatKey(r.cat);
+    if(k==='leads') nL++; else if(k==='fu') nF++; else other[r.cat]=(other[r.cat]||0)+1;
+  });
+  var nB=nL+nF, nO=total-nB;
+  var f=function(n){return n.toLocaleString('id-ID');};
+  var pc=function(n){return total>0?(n/total*100).toFixed(1).replace('.',',')+'%':'—';};
+  document.getElementById('jlb-src').textContent='Sumber: Data Deals Survey · periode: '+periodLabel+(isCurrent?' (bulan berjalan)':'')+' · mengikuti pilihan periode';
+  function card(ico,lbl,val,sub){return '<div class="kpi-card"><span class="kpi-ico">'+ico+'</span><span class="kpi-lbl">'+lbl+'</span><span class="kpi-val">'+esc(String(val))+'</span><span class="kpi-sub">'+sub+'</span></div>';}
+  box.innerHTML=
+    card('🌱','Survey Leads Baru',total?f(nB):'—',total?'Leads + Follow Up bulan ini':'Belum ada survey')+
+    card('📊','Kontribusi Leads Baru',total?pc(nB):'—',total?f(nB)+' dari '+f(total)+' survey':'Belum ada survey')+
+    card('📣','Leads (langsung survey)',total?f(nL):'—',total?pc(nL)+' dari total survey':'')+
+    card('🔁','Follow Up bulan ini',total?f(nF):'—',total?pc(nF)+' dari total survey':'');
+
+  var bar=document.getElementById('jlb-bar'), lg=document.getElementById('jlb-legend');
+  document.getElementById('jlb-badge').textContent=total?pc(nB)+' leads baru':'—';
+  if(!total){ bar.innerHTML=''; lg.innerHTML=''; }
+  else{
+    var seg=function(n,c){return n>0?'<div class="jlb-seg" style="width:'+(n/total*100)+'%;background:'+c+'"></div>':'';};
+    bar.innerHTML=seg(nL,'#F77625')+seg(nF,'#F5C518')+seg(nO,'#C9CCD6');
+    var dot=function(c,t,n){return '<span><i style="background:'+c+'"></i>'+t+': <b>'+f(n)+'</b> ('+pc(n)+')</span>';};
+    lg.innerHTML=dot('#F77625','Leads',nL)+dot('#F5C518','Follow Up bulan ini',nF)+dot('#C9CCD6','Lainnya (bukan leads baru)',nO);
+  }
+
+  // catatan: transparansi soal pencocokan nama kategori
+  var oth=Object.keys(other).map(function(k){return [k,other[k]];}).sort(function(a,b){return b[1]-a[1];});
+  var othTxt=oth.map(function(o){return '"'+esc(o[0])+'" ('+o[1]+')';}).join(', ');
+  var n;
+  if(!total) n=secNote('info','📊','Belum ada survey untuk '+periodLabel+'.');
+  else if(!nB) n=secNote('warn','⚠️','Tidak ada survey berkategori "Leads" atau "Follow Up bulan ini" di '+periodLabel+'. Kalau seharusnya ada, cek penulisan kategori di sheet. Kategori yang terbaca: '+othTxt+'.');
+  else n=secNote('info','ℹ️','Dihitung sebagai leads baru: kategori "Leads" dan "Follow Up bulan ini". Dihitung bukan leads baru: '+(oth.length?othTxt:'tidak ada kategori lain')+'. Kategori diisi manual oleh CS, jadi angka ini sebaik ketelitian input mereka.');
+  document.getElementById('note-jlb').innerHTML=n;
 }
 
 // ── PIPELINE BISNIS JASA (bulan berjalan, TIDAK ikut dropdown periode) ──

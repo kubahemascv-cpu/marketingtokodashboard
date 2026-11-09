@@ -304,6 +304,18 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
 @media(min-width:1500px){
   .kpi-grid{grid-template-columns:repeat(4,1fr)}
 }
+.bpk-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bpk{width:100%;border-collapse:collapse;font-size:12px;min-width:540px}
+.bpk th{padding:9px 10px;text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);border-bottom:2px solid var(--bdr);white-space:nowrap}
+.bpk th:first-child,.bpk td:first-child{text-align:left}
+.bpk td{padding:10px;border-bottom:1px solid var(--bdr);text-align:right;color:var(--txt);white-space:nowrap}
+.bpk tr.now td{background:#FFFBEB}
+.bpk tr.tot td{font-weight:800;border-top:2px solid var(--bdr);border-bottom:none}
+.bpk .sub{display:block;font-size:10px;color:var(--mut);font-weight:500}
+.bpk .tg{display:inline-block;font-size:9px;padding:1px 6px;border-radius:99px;background:#FEF3C7;color:#92400E;font-weight:700;margin-left:4px;vertical-align:middle}
+.bpk .st{font-size:10px;font-weight:700}
+.bpk .st.done{color:var(--grn)}.bpk .st.run{color:#B45309}.bpk .st.wait{color:var(--mut)}
+.bpk-note{font-size:10.5px;color:var(--mut);line-height:1.6;margin-top:12px}
 </style>
 </head>
 <body>
@@ -357,6 +369,7 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     </div>
+    <div id="note-ke"></div>
   </div>
 
   <div class="biz biz-km">
@@ -433,6 +446,9 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
     <div id="weekly-empty" style="display:none;text-align:center;padding:30px 20px;color:var(--mut);font-size:12px">Belum ada data Omset Pelanggan buat dikelompokin per pekan.</div>
   </div>
 
+  <span class="slbl">💸 Target Budget per Pekan — Toko Kubah Emas</span>
+  <div id="budget-toko"></div>
+
   </div><!-- /page-2 -->
 
   <div class="page" id="page-3" style="display:none">
@@ -447,6 +463,12 @@ body{background:var(--bg);font-variant-numeric:tabular-nums;-webkit-font-smoothi
       <div class="kpi-card"><div class="kpi-lbl">Loading...</div><div class="kpi-val">—</div></div>
     </div>
     <div id="note-pipeline"></div>
+  </div>
+
+  <div class="jasa-wrap">
+    <span class="slbl">💸 Target Budget per Pekan — Jasa Kumasindo</span>
+    <div class="jasa-src">Bulan berjalan — tidak terpengaruh pilihan periode di bawah.</div>
+    <div id="budget-jasa"></div>
   </div>
 
   <div class="jasa-wrap">
@@ -552,7 +574,7 @@ var SHEETS = {
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v25';
+var CACHE_KEY = 'exec_dash_v26';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -1187,12 +1209,19 @@ function renderSectionNotes(d){
   var n3='';
   if(!d.actual_spend){
     n3=secNote('info','💡','Biaya iklan bulan ini belum diisi. Masukkan angka di kolom input atas untuk menghitung ROAS dan Cost per Lead secara otomatis.');
-  } else if(d.roas>=8){
-    n3=secNote('ok','🚀','ROAS '+d.roas+'x — iklan sangat efisien. Setiap Rp 1 biaya iklan menghasilkan Rp '+d.roas+' omzet. CPL: '+fmt(d.cpl)+' per lead.');
-  } else if(d.roas>=5){
-    n3=secNote('warn','📊','ROAS '+d.roas+'x — di atas minimum 5x tapi belum optimal. CPL: '+fmt(d.cpl)+'. Masih ada ruang untuk meningkatkan efisiensi iklan.');
   } else {
-    n3=secNote('bad','📉','ROAS hanya '+d.roas+'x — di bawah standar minimum 5x. Total spend '+fmt(d.actual_spend)+' menghasilkan omzet '+fmt(d.omset_real)+'. CPL: '+fmt(d.cpl)+'.');
+    var rb=roasBand('toko',d.roas), pat=' <br><span style="opacity:.8">'+ROAS_TXT.toko+'. ROAS ini MER (total Deal Sales ÷ total biaya iklan), bukan ROAS Ads Manager.</span>';
+    if(!rb){
+      n3=secNote('info','💡','ROAS belum bisa dihitung: Deal Sales bulan ini belum terbaca.'+pat);
+    } else if(d.roas>=35){
+      n3=secNote('ok','🚀','ROAS '+d.roas+'x — Sangat Sehat. Biaya iklan hanya '+(100/d.roas).toFixed(1).replace('.',',')+'% dari Deal Sales. Ini juga sinyal masih ada ruang menaikkan budget (scale). CPL: '+fmt(d.cpl)+'.'+pat);
+    } else if(d.roas>=25){
+      n3=secNote('ok','✅','ROAS '+d.roas+'x — Aman (batas bawah aman 25x). CPL: '+fmt(d.cpl)+'.'+pat);
+    } else if(d.roas>=22){
+      n3=secNote('warn','⚠️','ROAS '+d.roas+'x — Waspada, mendekati batas Berbahaya 22x. Tahan penambahan budget sampai Deal Sales naik. CPL: '+fmt(d.cpl)+'.'+pat);
+    } else {
+      n3=secNote('bad','❌','ROAS '+d.roas+'x — Berbahaya (di bawah 22x). Spend '+fmt(d.actual_spend)+' untuk Deal Sales '+fmt(d.deal_sales)+'. Kurangi budget atau perbaiki konversi. CPL: '+fmt(d.cpl)+'.'+pat);
+    }
   }
 
   // ── 4. TREN HARIAN ──────────────────────────────────
@@ -1288,13 +1317,181 @@ function renderAll(){
   renderKonsolidasi(data);
   renderJasa();
   renderPipeline();
+  try{ renderBudgetToko(data); }catch(e){ console.error('[Budget Toko]',e); }
+  try{ renderBudgetJasa(); }catch(e){ console.error('[Budget Jasa]',e); }
   renderSectionNotes(data);
   renderCharts(data);
 }
 
+// ── PATOKAN ROAS (MER = Deal Sales ÷ Biaya Iklan) ─────
+// Satu-satunya sumber patokan ROAS di seluruh dashboard. Ini MER (total Deal Sales
+// ÷ total biaya iklan), BUKAN ROAS Ads Manager — jangan dibandingkan langsung.
+var ROAS_BANDS={
+  toko:[{min:35,cls:'good',ico:'🚀',lbl:'Sangat Sehat'},{min:25,cls:'good',ico:'✅',lbl:'Aman'},{min:22,cls:'warn',ico:'⚠️',lbl:'Waspada'},{min:-1,cls:'bad',ico:'❌',lbl:'Berbahaya'}],
+  jasa:[{min:25,cls:'good',ico:'🚀',lbl:'Sangat Sehat / Scale'},{min:18,cls:'good',ico:'✅',lbl:'Sehat'},{min:15,cls:'good',ico:'✅',lbl:'Sehat (minimum)'},{min:13,cls:'warn',ico:'⚠️',lbl:'Waspada'},{min:-1,cls:'bad',ico:'❌',lbl:'Berbahaya'}]
+};
+var ROAS_LIMIT={toko:22,jasa:13};   // di bawah angka ini = Berbahaya
+var ROAS_MINSEHAT={toko:25,jasa:15};
+var ROAS_TXT={
+  toko:'Patokan Toko: <22x Berbahaya · 22–<25x Waspada · 25–<35x Aman · ≥35x Sangat Sehat',
+  jasa:'Patokan Jasa: <13x Berbahaya · 13–<15x Waspada · 15–<25x Sehat (15x minimum) · ≥25x Sangat Sehat / Scale'
+};
+function roasBand(tipe,x){
+  if(!(x>0)) return null;
+  var b=ROAS_BANDS[tipe];
+  for(var i=0;i<b.length;i++){ if(x>=b[i].min) return b[i]; }
+  return b[b.length-1];
+}
+function roasBadge(tipe,x){ var b=roasBand(tipe,x); return b?b.ico+' '+b.lbl:null; }
+
+// ══════════════════════════════════════════════════════
+// TARGET BUDGET PER PEKAN  (Breakdown Toko & Breakdown Jasa)
+// ══════════════════════════════════════════════════════
+// Bobot: tiap hari kerja di Pekan 1–2 dihitung 1,5x (fase riset & launching),
+// Pekan 3 dst 1x. Alokasi per HARI KERJA (bukan per pekan) supaya pekan pendek
+// (mis. Pekan 1 yang cuma 2 hari, atau Pekan 5 yang cuma 1 hari) tidak kebagian
+// budget sebesar pekan penuh.
+// Budget bulan  = kolom Forecast di kartu Biaya Iklan (Report CEO).
+// Realisasi     = kolom Realisasi di kartu Biaya Iklan (Report CEO). Itu total
+//                 bulan berjalan; TIDAK ada angka per pekan, jadi dibandingkan
+//                 dengan target KUMULATIF sampai hari ini.
+// ROAS dinilai dari PROYEKSI akhir bulan, bukan per pekan: Pekan 1–2 sengaja
+// boros, jadi ROAS kumulatif di awal bulan memang akan tampak rendah.
+var BUDGET_BOBOT=1.5, BUDGET_PEKAN_AWAL=2;
+var BLN_PNDK=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+function weekPlan(ym, todayOverride){
+  var p=ym.split('-'), y=+p[0], m=+p[1], n=new Date(y,m,0).getDate(), now=new Date();
+  var cur=now.getFullYear()*12+now.getMonth(), tgt=y*12+(m-1);
+  var upto=(todayOverride!=null)?todayOverride:(cur===tgt?now.getDate():(tgt<cur?n:0));
+  var map={};
+  for(var day=1;day<=n;day++){
+    var dt=new Date(y,m-1,day); if(dt.getDay()===0) continue;           // Minggu tidak dihitung
+    var w=getWeekBucket(dt);
+    if(!map[w]) map[w]={w:w,hari:0,elapsed:0,first:day,last:day,bobot:(w<=BUDGET_PEKAN_AWAL?BUDGET_BOBOT:1)};
+    var e=map[w]; e.hari++; e.last=day; if(day<=upto) e.elapsed++;
+  }
+  var arr=Object.keys(map).map(Number).sort(function(a,b){return a-b;}).map(function(k){return map[k];});
+  var tot=0; arr.forEach(function(e){e.units=e.hari*e.bobot; tot+=e.units;});
+  arr.forEach(function(e){e.share=tot>0?e.units/tot:0; e.mon=m;});
+  return {weeks:arr,total:tot,upto:upto};
+}
+
+// Hitung seluruh angka (dipisah dari render supaya bisa dites)
+function budgetCalc(cfg){
+  var plan=weekPlan(cfg.ym, cfg.todayOverride), W=plan.weeks;
+  var B=+cfg.budget||0, real=+cfg.real||0, limit=ROAS_LIMIT[cfg.tipe];
+  var cum=0;
+  W.forEach(function(e){ e.tb=B*e.share; cum+=e.hari>0?e.tb*e.elapsed/e.hari:0; });
+  var sisaR=Math.max(0,B-real);
+  var basis=(+cfg.proyDeal>0)?+cfg.proyDeal:(+cfg.targetDeal||0);
+  var basisLbl=(+cfg.proyDeal>0)?'proyeksi Deal Sales':'target Deal Sales';
+  var maxTotal=basis>0?basis/limit:0;
+  var sisaMax=basis>0?Math.max(0,maxTotal-real):0;
+  var rem=B>0&&basis>0&&sisaR>sisaMax;
+  var allowed=(basis>0)?Math.min(sisaR,sisaMax):sisaR;
+  var remUnits=0; W.forEach(function(e){ e.ru=(e.hari-e.elapsed)*e.bobot; remUnits+=e.ru; });
+  W.forEach(function(e){ e.rek=(B>0&&remUnits>0)?allowed*e.ru/remUnits:0; });
+  var projSpend=real+sisaR;
+  var projRoas=(B>0&&basis>0&&projSpend>0)?+(basis/projSpend).toFixed(1):0;
+  var frontShare=0; W.forEach(function(e){ if(e.w<=BUDGET_PEKAN_AWAL) frontShare+=e.share; });
+  return {plan:plan,W:W,B:B,real:real,cum:cum,sisaR:sisaR,basis:basis,basisLbl:basisLbl,maxTotal:maxTotal,sisaMax:sisaMax,rem:rem,allowed:allowed,projRoas:projRoas,frontShare:frontShare,limit:limit};
+}
+
+function budgetBlock(cfg){
+  var c=budgetCalc(cfg), W=c.W, tipe=cfg.tipe, B=c.B, real=c.real;
+  var pace=(c.cum>0&&real>0)?real/c.cum:null;
+  var paceTxt=!real?'Realisasi belum terisi di sheet':(pace===null?'—':(pace>1.1?'Lebih cepat '+Math.round((pace-1)*100)+'% dari rencana':(pace<0.9?'Lebih lambat '+Math.round((1-pace)*100)+'% dari rencana':'Sesuai rencana')));
+  var paceCls=(pace!==null&&pace>1.1)?'warn':'';
+  var rb=roasBand(tipe,cfg.roasNow), pb=roasBand(tipe,c.projRoas);
+
+  var cards=
+    kpiCard('🗓️','Budget Bulan Ini',B?fmt(B):'—','Forecast, kartu Biaya Iklan',null,null,'hero',B?'Pekan 1–2: '+Math.round(c.frontShare*100)+'% dari budget':'Forecast belum terbaca')+
+    kpiCard('💸','Realisasi',real?fmt(real):'—',B&&real?Math.round(real/B*100)+'% dari budget bulan ini':'Kartu Biaya Iklan, Report CEO',null,B&&real?Math.min(100,real/B*100):null,'')+
+    kpiCard('🎯','Target s/d Hari Ini',B?fmt(c.cum):'—',paceTxt,null,null,paceCls)+
+    kpiCard('🧮','Sisa Budget Rencana',B?fmt(c.sisaR):'—',B&&real>B?'Realisasi sudah melewati budget':'Forecast − Realisasi',null,null,(B&&real>B)?'bad':'')+
+    kpiCard('📡','ROAS Saat Ini',cfg.roasNow?cfg.roasNow+'x':'—','Deal Sales ÷ Realisasi (kumulatif)',roasBadge(tipe,cfg.roasNow),null,rb?rb.cls:'')+
+    kpiCard('🔮',cfg.projLabel,c.projRoas?c.projRoas+'x':'—',c.basis>0?cfg.projSub:'Butuh data target / proyeksi',roasBadge(tipe,c.projRoas),null,pb?pb.cls:'')+
+    (cfg.extraCards||'');
+
+  // Plafon budget dari patokan ROAS
+  var PL=tipe==='toko'
+    ?[{x:22,l:'Plafon Berbahaya (22x)',s:'Lewat ini = Berbahaya',cls:'bad'},{x:25,l:'Batas Aman (25x)',s:'Batas bawah Aman',cls:'warn'},{x:30,l:'Tengah Aman (30x)',s:'Zona Aman 25–35x',cls:'good'},{x:35,l:'Sangat Sehat (35x)',s:'Budget segini = Sangat Sehat',cls:'good'}]
+    :[{x:13,l:'Plafon Berbahaya (13x)',s:'Lewat ini = Berbahaya',cls:'bad'},{x:15,l:'Minimum Sehat (15x)',s:'Batas bawah Sehat',cls:'warn'},{x:18,l:'Sehat (18x)',s:'Zona Sehat 18–25x',cls:'good'},{x:25,l:'Sangat Sehat (25x)',s:'Budget segini = Scale',cls:'good'}];
+  var plafon=PL.map(function(o){ return kpiCard('🧱',o.l,cfg.targetDeal>0?fmt(cfg.targetDeal/o.x):'—',o.s,null,null,cfg.targetDeal>0?o.cls:''); }).join('');
+
+  // Catatan: forecast vs plafon, dan rem
+  var notes='';
+  if(!B) notes+=secNote('info','💡','Forecast Biaya Iklan bulan ini belum terbaca dari kartu Biaya Iklan, jadi nominal Target Budget belum bisa dihitung. Porsi (%) per pekan tetap tampil.');
+  if(B&&cfg.targetDeal>0&&B>cfg.targetDeal/c.limit) notes+=secNote('bad','🛑','Forecast Biaya Iklan '+fmt(B)+' sudah melewati plafon Berbahaya '+fmt(cfg.targetDeal/c.limit)+' (target Deal Sales ÷ '+c.limit+'x). Kalau target Deal tercapai pun ROAS akhir bulan di bawah '+c.limit+'x.');
+  if(c.rem) notes+=secNote('bad','🛑','REM BUDGET: sisa rencana '+fmt(c.sisaR)+' melewati batas ROAS '+c.limit+'x berdasarkan '+c.basisLbl+' '+fmt(c.basis)+'. Sisa maksimal yang aman: '+fmt(c.sisaMax)+' (kurangi ±'+fmt(c.sisaR-c.sisaMax)+'). Kolom "Rekomendasi Sisa" sudah dihitung ulang.');
+  else if(B&&c.basis>0&&real>0) notes+=secNote('ok','✅','Sisa budget rencana '+fmt(c.sisaR)+' masih di dalam batas ROAS '+c.limit+'x ('+c.basisLbl+'). Ruang maksimal sisa: '+fmt(c.sisaMax)+'.');
+
+  // Tabel
+  var today=c.plan.upto, hasExtra=!!cfg.extraLabel;
+  var rows=W.map(function(e){
+    var state=e.elapsed===0?'wait':(e.elapsed>=e.hari?'done':'run');
+    var stTxt=state==='wait'?'Belum':(state==='done'?'Selesai':'Berjalan');
+    var tgl=e.first===e.last?(e.first+' '+BLN_PNDK[e.mon-1]):(e.first+'–'+e.last+' '+BLN_PNDK[e.mon-1]);
+    return '<tr'+(state==='run'?' class="now"':'')+'>'
+      +'<td><b>Pekan '+e.w+'</b>'+(e.w<=BUDGET_PEKAN_AWAL?'<span class="tg">riset/launching</span>':'')+'<span class="sub">'+tgl+' · <span class="st '+state+'">'+stTxt+'</span></span></td>'
+      +'<td>'+e.hari+'<span class="sub">×'+String(e.bobot).replace('.',',')+'</span></td>'
+      +'<td>'+(B?fmt(e.tb):'—')+'</td>'
+      +'<td>'+(e.share*100).toFixed(1).replace('.',',')+'%</td>'
+      +'<td>'+(state==='done'?'—':(B&&c.plan.total>0?fmt(e.rek):'—'))+'</td>'
+      +(hasExtra?'<td>'+cfg.extraFn(e)+'</td>':'')
+      +'</tr>';
+  }).join('');
+  var tot='<tr class="tot"><td>Total</td><td>'+W.reduce(function(s,e){return s+e.hari;},0)+'</td><td>'+(B?fmt(B):'—')+'</td><td>100%</td><td>'+(B?fmt(c.allowed):'—')+'</td>'+(hasExtra?'<td>'+cfg.extraTotal+'</td>':'')+'</tr>';
+  var table='<div class="chart-box" style="margin-top:12px"><div class="chart-hd"><div class="chart-title">Target Budget per Pekan</div><span class="chart-badge">'+(B?fmt(B):'—')+'</span></div>'
+    +'<div class="bpk-wrap"><table class="bpk"><thead><tr><th>Pekan</th><th>Hari kerja</th><th>Target Budget</th><th>Porsi</th><th>Rekomendasi Sisa</th>'+(hasExtra?'<th>'+cfg.extraLabel+'</th>':'')+'</tr></thead><tbody>'+rows+tot+'</tbody></table></div>'
+    +'<div class="bpk-note">'
+    +'• Pekan 1–2 diberi bobot <b>1,5x per hari kerja</b> (fase riset &amp; launching) → '+Math.round(c.frontShare*100)+'% dari budget bulan. Pekan 3 dst bobot 1x. Dibagi per hari kerja (Senin–Sabtu), jadi pekan pendek otomatis dapat porsi lebih kecil.<br>'
+    +'• Realisasi mengikuti kartu Biaya Iklan di Report CEO (total bulan berjalan, tidak ada angka per pekan), jadi dibandingkan dengan <b>target kumulatif sampai hari ini</b>.<br>'
+    +'• <b>Rekomendasi Sisa</b> = sisa budget (maksimal sesuai batas ROAS '+c.limit+'x dari '+c.basisLbl+') dibagi ke hari kerja yang belum lewat dengan bobot yang sama.<br>'
+    +'• ROAS dinilai dari <b>proyeksi akhir bulan</b>, bukan per pekan — Pekan 1–2 memang sengaja lebih boros.<br>'
+    +'• '+ROAS_TXT[tipe]+'</div></div>';
+
+  return '<div class="kpi-grid">'+cards+'</div>'
+    +'<div style="font-size:10.5px;color:var(--mut);margin:14px 0 8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Plafon budget untuk target Deal Sales '+(cfg.targetDeal>0?fmt(cfg.targetDeal):'(belum terbaca)')+'</div>'
+    +'<div class="kpi-grid">'+plafon+'</div>'
+    +'<div style="margin-top:14px">'+notes+'</div>'+table;
+}
+
+function renderBudgetToko(d){
+  var box=document.getElementById('budget-toko'); if(!box) return;
+  var pel=getPelangganMonth(d.ym), dealByW={}, dealTot=0;
+  pel.forEach(function(r){ var w=getWeekBucket(r.date); if(w<0) return; dealByW[w]=(dealByW[w]||0)+r.jumlah; dealTot+=r.jumlah; });
+  box.innerHTML=budgetBlock({
+    tipe:'toko', ym:d.ym, budget:d.ads_forecast, real:d.actual_spend,
+    targetDeal:d.target, proyDeal:d.proyeksi_deal, roasNow:d.roas,
+    projLabel:'Proyeksi ROAS Akhir Bulan', projSub:'Proyeksi Deal Sales ÷ (Realisasi + Sisa Budget)',
+    extraLabel:'Deal Sales', extraFn:function(e){ return dealByW[e.w]?fmt(dealByW[e.w]):'—'; }, extraTotal:dealTot?fmt(dealTot):'—'
+  });
+}
+
+function renderBudgetJasa(){
+  var box=document.getElementById('budget-jasa'); if(!box) return;
+  var ym=SEL_MONTH, km=D.km||{}, ad=(D.ads&&D.ads.proyek&&D.ads.proyek.ym===ym)?D.ads.proyek:{real:0,fc:0};
+  var ok=km.found&&km.ym===ym, target=ok?km.target:0, deal=ok?km.potensi:0, spend=ad.real||0;
+  var roas=spend>0&&deal>0?+(deal/spend).toFixed(1):0;
+  var sv=(D.jasa||[]).filter(function(r){return r.ym===ym&&r.dt;}), svByW={};
+  sv.forEach(function(r){ var dt=r.dt instanceof Date?r.dt:new Date(r.dt); if(isNaN(dt)) return; var w=getWeekBucket(dt); if(w<0) return; svByW[w]=(svByW[w]||0)+1; });
+  var svTot=(D.jasa||[]).filter(function(r){return r.ym===ym;}).length;
+  var extra=kpiCard('🧾','Biaya per Survey',spend>0&&svTot>0?fmt(spend/svTot):'—',svTot+' survey bulan ini (Realisasi ÷ Survey)',null,null,'');
+  box.innerHTML=budgetBlock({
+    tipe:'jasa', ym:ym, budget:ad.fc, real:spend,
+    targetDeal:target, proyDeal:0, roasNow:roas,
+    projLabel:'ROAS jika Target Tercapai', projSub:'Target Deal ÷ (Realisasi + Sisa Budget)',
+    extraCards:extra,
+    extraLabel:'Survey Masuk', extraFn:function(e){ return svByW[e.w]||'—'; }, extraTotal:svTot||'—'
+  }) + (ok?'':secNote('warn','⚠️','Data Kumasindo (Target / Deal) belum terbaca dari tab Database Dashboard, jadi plafon dan ROAS belum bisa dihitung.'))
+    + secNote('info','ℹ️','Jasa punya siklus panjang (survey hari ini baru closing beberapa hari/minggu kemudian) dan nilai Deal hanya tersedia per bulan, bukan per pekan. Jadi ROAS Jasa selalu terlambat; pantau juga Biaya per Survey dan jumlah survey per pekan sebagai indikator dini.');
+}
+
 // ── KPI BLOCKS ────────────────────────────────────────
 function renderKPIs(d){
-  var rCls=d.roas>=8?'good':d.roas>=5?'warn':'bad';
+  var rCls=(roasBand('toko',d.roas)||{}).cls||'bad';
   var dap=d.deal_sales_pct;
   var dacls=dap>=100?'good':dap>=80?'warn':'bad';
   var dpCls = d.proyeksi_deal>0 ? (d.proyeksi_deal>=d.target?'good':d.proyeksi_deal>=d.target*0.8?'warn':'bad') : '';
@@ -1308,12 +1505,14 @@ function renderKPIs(d){
     kpiCard('📈','Pencapaian Deal Sales',dap+'%',fmt(d.deal_sales)+' / '+fmt(d.target),null,dap,dacls)+
     kpiCard('💸','Biaya Iklan',d.actual_spend?fmt(d.actual_spend):'—','Realisasi '+ymLabel(d.ym),null,null,'',d.ads_forecast?'Forecast: '+fmt(d.ads_forecast):'')+
     kpiCard('📡','ROAS',d.roas?d.roas+'x':'—','Deal Sales ÷ Biaya Iklan',
-      d.roas>0?(d.roas>=8?'✅ Excellent':d.roas>=5?'⚠️ Average':'❌ Poor'):null,null,rCls)+
+      roasBadge('toko',d.roas),null,rCls,'Aman mulai ≥'+ROAS_MINSEHAT.toko+'x · Berbahaya <'+ROAS_LIMIT.toko+'x')+
     kpiCard('📉','Gap Omzet',fmt(Math.abs(d.gap_omzet)),
       d.gap_omzet<=0?'✅ Deal Sales sudah melampaui target':'Sisa yang harus dicapai (vs Deal Sales)',
       d.gap_omzet<=0?'▲ +'+fmt(Math.abs(d.gap_omzet)):null,null,d.gap_omzet<=0?'good':'bad')+
     kpiCard('🔮','Proyeksi Akhir Bulan',d.proyeksi_deal?fmt(d.proyeksi_deal):'—',
       dpPct!==null?dpPct+'% dari target (sudah ×95% toleransi telat bayar)':'Butuh data hari kerja',null,null,dpCls,d.hari_aktif>0?'Hari Aktif: '+d.hari_aktif+' hari':'Hari Aktif: —');
+  var nk=document.getElementById('note-ke');
+  if(nk) nk.innerHTML='<div class="sec-note info" style="margin:12px 0 0"><span class="sec-note-ico">📐</span><span>'+ROAS_TXT.toko+'. ROAS ini MER (Deal Sales ÷ total biaya iklan), bukan ROAS Ads Manager.</span></div>';
 }
 
 // ── KUMASINDO — Target vs Proyeksi (6 kartu: tanpa Proyeksi Akhir Bulan) ──
@@ -1329,13 +1528,13 @@ function renderKumasindo(){
   var dap=pct(deal,target), gap=target-deal;
   var roas=spend>0&&deal>0?+(deal/spend).toFixed(1):0;
   var dacls=dap>=100?'good':dap>=80?'warn':'bad';
-  var rCls=roas>=8?'good':roas>=5?'warn':'bad';
+  var rCls=(roasBand('jasa',roas)||{}).cls||'bad';
   box.innerHTML=
     kpiCard('🎯','Target Omzet',target?fmt(target):'—','Bulan '+ymLabel(ym),null,null,'hero','Hari berjalan: '+elapsed+' dari '+total+' hari')+
     kpiCard('🤝','Deal Sales',ok?fmt(deal):'—','Omzet Potensi Proyek',null,null,'',done?'Terlaksana: '+fmt(done):'')+
     kpiCard('📈','Pencapaian Deal Sales',target?dap+'%':'—',target?fmt(deal)+' / '+fmt(target):'Target belum diisi',null,target?dap:null,target?dacls:'')+
     kpiCard('💸','Biaya Iklan',spend?fmt(spend):'—','Realisasi '+ymLabel(ym),null,null,'',fc?'Forecast: '+fmt(fc):'')+
-    kpiCard('📡','ROAS',roas?roas+'x':'—','Deal Sales ÷ Biaya Iklan',roas>0?(roas>=8?'✅ Excellent':roas>=5?'⚠️ Average':'❌ Poor'):null,null,roas?rCls:'')+
+    kpiCard('📡','ROAS',roas?roas+'x':'—','Deal Sales ÷ Biaya Iklan',roasBadge('jasa',roas),null,roas?rCls:'','Sehat mulai ≥'+ROAS_MINSEHAT.jasa+'x · Berbahaya <'+ROAS_LIMIT.jasa+'x')+
     kpiCard('📉','Gap Omzet',target?fmt(Math.abs(gap)):'—',gap<=0&&target?'✅ Deal Sales sudah melampaui target':'Sisa yang harus dicapai (vs Deal Sales)',gap<=0&&target?'▲ +'+fmt(Math.abs(gap)):null,null,target?(gap<=0?'good':'bad'):'');
   var note=document.getElementById('note-km');
   if(note){
@@ -1343,7 +1542,8 @@ function renderKumasindo(){
     if(!ok) msg='Data Kumasindo belum terbaca dari tab Database Dashboard — cek nama bulan di kolom Bulan dan kolom Target.';
     else if(!target) msg='Kolom Target untuk '+ymLabel(ym)+' belum diisi di tab Database Dashboard.';
     else if(!(D.ads&&D.ads.proyek&&D.ads.proyek.found)) msg='Biaya Iklan Kumasindo belum terbaca dari tab proyek (akun 06.1301).';
-    note.innerHTML=msg?'<div class="sec-note warn" style="margin:12px 0 0"><span class="sec-note-ico">⚠️</span><span>'+msg+'</span></div>':'';
+    note.innerHTML=(msg?'<div class="sec-note warn" style="margin:12px 0 0"><span class="sec-note-ico">⚠️</span><span>'+msg+'</span></div>':'')
+      +'<div class="sec-note info" style="margin:12px 0 0"><span class="sec-note-ico">📐</span><span>'+ROAS_TXT.jasa+'. ROAS ini MER (Deal ÷ total biaya iklan), bukan ROAS Ads Manager.</span></div>';
   }
 }
 
@@ -1652,7 +1852,7 @@ function parseJasaSurvey(table){
     }
     if(!dv||isNaN(dv)) return;
     var cc=(cCat>=0&&r.c[cCat]&&r.c[cCat].v!==null&&r.c[cCat].v!==undefined)?String(r.c[cCat].v).trim():'';
-    out.push({ym:dv.getFullYear()+'-'+String(dv.getMonth()+1).padStart(2,'0'),cat:cc||'Lainnya'});
+    out.push({ym:dv.getFullYear()+'-'+String(dv.getMonth()+1).padStart(2,'0'),cat:cc||'Lainnya',dt:dv});
   });
   return out;
 }
@@ -2180,7 +2380,7 @@ function exportData(){
   rows+=csvRow(['MARKETING & ROAS','','']);
   rows+=csvRow(['Metrik','Nilai','Keterangan']);
   rows+=csvRow(['Biaya Iklan',d.actual_spend,d.actual_spend?'Dari tab toko (06.1107)':'Belum ada data']);
-  rows+=csvRow(['ROAS / MER',d.roas?d.roas+'x':'—','Omzet Real / Biaya Iklan']);
+  rows+=csvRow(['ROAS / MER',d.roas?d.roas+'x':'—','Deal Sales / Biaya Iklan'+(roasBadge('toko',d.roas)?' — '+roasBand('toko',d.roas).lbl:'')]);
   rows+=csvRow(['Cost per Lead',d.cpl?d.cpl:'—','Biaya Iklan / Total Leads']);
   rows+=csvRow(['','','']);
 

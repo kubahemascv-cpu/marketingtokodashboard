@@ -572,9 +572,13 @@ var SHEETS = {
   leads: { id:'1k8gxOxuiwghZW6ldkXrrvHpOD7zOau9zgWfypJL0DNs', sheet:'Database TDK', range:'A7:K', headers:0 },
   // Sheet 2: RINGKASAN HARIAN — daily summary
   harian: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:Z200', headers:1 },
+  // Traffic harian CS Toko (sheet yang sama dengan app Performance CS Toko):
+  // V = Chat New Leads, Y = Chat Existing Leads, AD = Leads Offline.
+  // Range dilebarin sampai AD (kolom 30) dan 400 baris — dipakai Closing Rate = Jumlah Nota ÷ Traffic.
+  traffic: { id:'1Z3kXM4e4Ic6YUhhYzB3mrlSwXAbrYqJedgNDsbNtmuk', sheet:'Ringkasan Harian', range:'A1:AD400', headers:1 },
 };
 
-var CACHE_KEY = 'exec_dash_v26';
+var CACHE_KEY = 'exec_dash_v27';
 var CACHE_TTL = 5 * 60 * 1000; // 5 menit
 function todayKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate();}
 
@@ -670,6 +674,40 @@ function parseDataPelanggan(table){
   });
   console.log('[Data Pelanggan] baris valid ditemukan:',result.length,'| 3 contoh pertama:',result.slice(0,3));
   return result.sort(function(a,b){return a.date-b.date;});
+}
+
+// ── TRAFFIC HARIAN (CS Toko · Ringkasan Harian) ──────────
+// Traffic = Chat New Leads (V) + Chat Existing Leads (Y) + Leads Offline (AD).
+// Kolom dicari lewat label header; kalau label gak kebaca, pakai posisi tetap.
+// Disimpen sebagai teks (key 'YYYY-MM-DD') — bukan Date — biar aman lewat cache.
+function parseTrafficHarian(table){
+  var cols=table.cols||[];
+  function lab(i){return String((cols[i]&&(cols[i].label||cols[i].id))||'').trim().toLowerCase();}
+  function find(label,fb){for(var i=0;i<cols.length;i++){if(lab(i)===label)return i;}return fb;}
+  var iD=find('tanggal',1), iV=find('chat new leads',21), iY=find('chat existing leads',24), iAD=find('leads offline',29);
+  function num(r,i){
+    var c=r.c?r.c[i]:null;
+    if(!c||c.v===null||c.v===undefined||c.v==='')return null;
+    var n=parseNumStr(c.v);
+    return isNaN(n)?null:n;
+  }
+  var out=[], seen={};
+  (table.rows||[]).forEach(function(r){
+    var c=r.c?r.c[iD]:null;
+    if(!c||c.v===null||c.v===undefined) return;
+    var s=String(c.v).trim(), m, dv=null;
+    if((m=s.match(/^Date\((\d+),(\d+),(\d+)/))) dv=new Date(+m[1],+m[2],+m[3]);
+    else if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) dv=new Date(+m[1],+m[2]-1,+m[3]);
+    else if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) dv=new Date(+m[3],+m[2]-1,+m[1]);
+    if(!dv||isNaN(dv)) return;
+    var mm=String(dv.getMonth()+1).padStart(2,'0');
+    var key=dv.getFullYear()+'-'+mm+'-'+String(dv.getDate()).padStart(2,'0');
+    var v=num(r,iV), y=num(r,iY), ad=num(r,iAD);
+    var rec={ym:dv.getFullYear()+'-'+mm,key:key,v:v,y:y,ad:ad,has:(v!==null||y!==null||ad!==null)};
+    if(seen[key]!==undefined){ if(out[seen[key]].has||!rec.has) return; out[seen[key]]=rec; return; } // 1 tanggal = 1 baris
+    seen[key]=out.length; out.push(rec);
+  });
+  return out;
 }
 
 function parseTable(table){
@@ -920,6 +958,8 @@ var D={
   pivot_omzet:[],  // daily omzet (col J=date, K=omzet) — dipakai Tren Harian
   leads:{},        // leads analysis — dipakai Tren Harian (Distribusi Leads)
   harian:[],       // ringkasan harian
+  traffic:[],      // [{ym,key,v,y,ad,has}] Traffic harian CS (Chat New + Existing + Offline) — buat Closing Rate
+  traffic_err:'',
   loaded:false,
   error:null,
   lastUpdate:null,
@@ -958,6 +998,7 @@ function loadData(force){
     gviz(SHEETS.pivot_omzet).then(parsePivotOmzet).then(function(v){D.pivot_omzet=v;}),
     gviz(SHEETS.leads).then(parseLeads).then(function(v){D.leads=v;}),
     gviz(SHEETS.harian).then(parseTable).then(function(v){D.harian=v.rows||[];}).catch(function(){}),
+    gviz(SHEETS.traffic).then(parseTrafficHarian).then(function(v){D.traffic=v;D.traffic_err='';}).catch(function(err){console.error('[Traffic CS] GAGAL:',err);D.traffic=[];D.traffic_err=String(err&&err.message||err);}),
   ]).then(function(results){
     var errors=results.filter(function(r){return r.status==='rejected';});
     D.loaded=true;D.lastUpdate=new Date();
@@ -1107,6 +1148,33 @@ function getMonthData(ym){
   var notaOfflineReal = dataPelangganMonth.reduce(function(s,r){return s+(r.notaOffline||0);},0);
   var hasNotaMediaData = dataPelangganMonth.some(function(r){return r.notaOnline||r.notaOffline;});
 
+  // ── CLOSING RATE = Jumlah Nota ÷ Traffic ──
+  // Traffic (CS Toko: V+Y+AD) baru terisi sejak 09/11/2026 (AD lebih belakangan),
+  // sedangkan nota terisi sebulan penuh. Biar apple-to-apple, cuma dihitung HARI
+  // yang punya data di dua sisi (nota harian REPORT kolom I + traffic rekap).
+  // Selama masih ada hari nota yang belum punya traffic -> ditandai DATA SEBAGIAN.
+  function ymdKey(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+  var crTrRows=(D.traffic||[]).filter(function(r){return r.ym===ym;});
+  var crNotaDay={};
+  dataPelangganMonth.forEach(function(r){
+    var dt=r.date instanceof Date?r.date:new Date(r.date);
+    if(isNaN(dt)) return;
+    var k=ymdKey(dt); crNotaDay[k]=(crNotaDay[k]||0)+(r.nota||0);
+  });
+  var crTrHas={}; crTrRows.forEach(function(r){ if(r.has) crTrHas[r.key]=1; });
+  var crToday=ymdKey(new Date());
+  // hari nota yang dituntut punya traffic; hari ini dikeluarkan kalau rekap CS-nya belum masuk (rekap ±16:00)
+  var crNotaDays=Object.keys(crNotaDay).filter(function(k){return !(isCurrentMonth&&k===crToday&&!crTrHas[k]);}).length;
+  var crNota=0, crTraffic=0, crDays=0, crAdMiss=0, crFirst=null;
+  crTrRows.forEach(function(r){
+    if(!r.has||crNotaDay[r.key]===undefined) return;
+    crDays++; crNota+=crNotaDay[r.key]; crTraffic+=(r.v||0)+(r.y||0)+(r.ad||0);
+    if(r.ad===null) crAdMiss++;
+    if(!crFirst||r.key<crFirst) crFirst=r.key;
+  });
+  var cr_traffic = crTraffic>0 ? +(crNota/crTraffic*100).toFixed(1) : null;
+  var cr_partial = crDays<crNotaDays;
+
   var beli_tdk = leadM.beli || 0;
   var offline_tx = hasNotaMediaData ? notaOfflineReal : Math.max(0, jumlah_nota_card - beli_tdk);
   var total_leads_masuk = leadM.total + offline_tx;
@@ -1148,6 +1216,7 @@ function getMonthData(ym){
     achievement_pct:achievement_pct,gap_omzet:gap_omzet,transaksi:transaksi,aov:aov,
     total_leads_masuk:total_leads_masuk,offline_tx:offline_tx,ads_forecast:ads_forecast,
     closing_rate:closing_rate,cr_online:cr_online,cr_offline:cr_offline,
+    cr_traffic:cr_traffic,crNota:crNota,crTraffic:crTraffic,crDays:crDays,crNotaDays:crNotaDays,crPartial:cr_partial,crAdMiss:crAdMiss,crFirst:crFirst,crTrafficRows:crTrRows.filter(function(r){return r.has;}).length,crNotaDayCount:Object.keys(crNotaDay).length,
     hasNotaMediaData:hasNotaMediaData,notaOnlineReal:notaOnlineReal,notaOfflineReal:notaOfflineReal,
     beli_online_hitungan:beli_online_hitungan,cr_online_hitungan:cr_online_hitungan,beliOnlineSelisih:beliOnlineSelisih,
     notaMediaTotal:notaMediaTotal,notaMediaSelisih:notaMediaSelisih,notaMediaCocok:notaMediaCocok,
@@ -1196,13 +1265,13 @@ function renderSectionNotes(d){
   if(!ld.total){
     n2=secNote('info','📊','Data leads belum termuat dari Database TDK bulan ini.');
   } else if(d.cr_online>=10&&ttbPct<40){
-    n2=secNote('ok','✅','CR Online '+d.cr_online+'% — di atas benchmark 10%. '+ld.beli+' dari '+ld.total+' leads WA berhasil closing. TTB hanya '+ttbPct+'% — kualitas traffic terjaga.');
+    n2=secNote('ok','✅','Rasio Beli TDK '+d.cr_online+'% — di atas benchmark 10%. '+ld.beli+' dari '+ld.total+' leads WA berhasil closing. TTB hanya '+ttbPct+'% — kualitas traffic terjaga.');
   } else if(ttbPct>=50){
-    n2=secNote('bad','👻',ttbPct+'% leads tidak respons sama sekali (TTB = '+ld.ttb+' dari '+ld.total+'). CR Online '+d.cr_online+'%. Traffic masuk tapi tidak menghasilkan interaksi.');
+    n2=secNote('bad','👻',ttbPct+'% leads tidak respons sama sekali (TTB = '+ld.ttb+' dari '+ld.total+'). Rasio Beli TDK '+d.cr_online+'%. Traffic masuk tapi tidak menghasilkan interaksi.');
   } else if(d.cr_online<5){
-    n2=secNote('warn','📉','CR Online rendah: '+d.cr_online+'%. Dari '+ld.total+' leads WA, hanya '+ld.beli+' yang closing. '+ld.tanya+' leads masih di status Tanya — ada potensi yang belum terkonversi.');
+    n2=secNote('warn','📉','Rasio Beli TDK rendah: '+d.cr_online+'%. Dari '+ld.total+' leads WA, hanya '+ld.beli+' yang closing. '+ld.tanya+' leads masih di status Tanya — ada potensi yang belum terkonversi.');
   } else {
-    n2=secNote('info','📋',''+ld.total+' leads WA bulan ini. Beli: '+ld.beli+' · Tanya: '+ld.tanya+' · TTB: '+ld.ttb+'. CR Online: '+d.cr_online+'%. CR Offline: '+(d.cr_offline?'100%':'—')+'.');
+    n2=secNote('info','📋',''+ld.total+' leads WA bulan ini. Beli: '+ld.beli+' · Tanya: '+ld.tanya+' · TTB: '+ld.ttb+'. Rasio Beli TDK: '+d.cr_online+'%. CR Offline: '+(d.cr_offline?'100%':'—')+'.');
   }
 
   // ── 3. BIAYA MARKETING & ROAS ───────────────────────
@@ -1600,6 +1669,25 @@ function renderNotaMediaValidasi(d){
   }
 }
 
+// Closing Rate = Jumlah Nota ÷ Traffic (Chat New + Chat Existing + Leads Offline, Rekap Harian CS).
+// Cuma hari yang punya nota DAN traffic yang dihitung; kalau masih ada hari yang belum
+// punya traffic -> DATA SEBAGIAN, dan warnanya tidak pernah hijau.
+function closingRateCard(d){
+  var L='Closing Rate';
+  function dm(k){var p=String(k).split('-');return p[2]+'/'+p[1];}
+  if(d.cr_traffic===null){
+    var why=D.traffic_err?'Gagal memuat Rekap Harian CS':(!d.crTrafficRows?'Belum ada data Traffic bulan ini (Rekap Harian CS kolom V, Y, AD)':(!d.crNotaDayCount?'Nota harian bulan ini belum terbaca (REPORT V.2 kolom I)':'Belum ada hari yang punya nota dan traffic sekaligus'));
+    return kpiCard('📲',L,'—',why,null,null,'');
+  }
+  var sub=d.crNota.toLocaleString('id-ID')+' Jumlah Nota ÷ '+d.crTraffic.toLocaleString('id-ID')+' Traffic';
+  var parts=[];
+  if(d.crPartial) parts.push('⚠️ DATA SEBAGIAN — baru '+d.crDays+' dari '+d.crNotaDays+' hari yang punya data traffic (sejak '+dm(d.crFirst)+'), belum final.');
+  if(d.crAdMiss>0) parts.push('Leads Offline (kolom AD) kosong di '+d.crAdMiss+' dari '+d.crDays+' hari — Traffic kurang.');
+  var cls=d.cr_traffic>=20?'good':d.cr_traffic>=15?'warn':'bad';
+  if(d.crPartial&&cls==='good') cls='warn';
+  return kpiCard('📲',L,d.cr_traffic+'%',sub,null,null,cls,parts.join(' '));
+}
+
 function renderAOVKPIs(d){
   document.getElementById('kpi-aov').innerHTML=
     kpiCard('🧾','Jumlah Nota',d.jumlah_nota_card?d.jumlah_nota_card.toLocaleString('id-ID'):'—',
@@ -1607,9 +1695,7 @@ function renderAOVKPIs(d){
       null,null,d.nota_ideal_c26&&d.jumlah_nota_card?(d.jumlah_nota_card>=d.nota_ideal_c26?'good':'bad'):'')+
     kpiCard('💵','AOV (Average Order Value)',d.aov_card?fmt(d.aov_card):'—','Sheet KESIMPULAN',null,null,'')+
     kpiCard('🎯','Ideal AOV',d.ideal_aov_card?fmt(d.ideal_aov_card):'—','Sheet KESIMPULAN (C25)',null,null,'hero')+
-    kpiCard('📲','Closing Rate Online',d.leads.total>0?d.cr_online+'%':'—',
-      d.leads.total>0?d.leads.beli.toLocaleString('id-ID')+' Total Leads Online Beli / '+d.leads.total.toLocaleString('id-ID')+' Total Leads Online (TDK)':'Belum ada data leads TDK',
-      null,null,d.leads.total>0?(d.cr_online>=20?'good':d.cr_online>=15?'warn':'bad'):'');
+    closingRateCard(d);
   // renderNotaMediaValidasi(d); — disembunyiin sementara, nempel sama
   // konsep "data Offline" yang belum siap jadi metrik resmi (bakal
   // dipasang lagi bareng Closing Rate Offline nanti)
@@ -1656,21 +1742,22 @@ function renderAOVKesimpulan(d){
       body:'Proyeksi udah '+posisiProyeksi+'% dari Target Perusahaan. Pertahanin ritme AOV & volume transaksi yang sekarang.'});
   }
 
-  // Skenario Closing Rate Online — sesuai rule resmi PDF "Closing Rate
-  // New Lead": target ideal 20-25%, standar warna Merah <15% / Kuning
-  // 15-19% / Hijau ≥20%. 3 poin cek kalau di bawah target itu PERSIS
-  // dari PDF, bukan saya karang sendiri.
-  if(d.leads.total>0){
-    var cr=d.cr_online;
+  // Skenario Closing Rate = Jumlah Nota ÷ Traffic (Chat New + Existing + Leads Offline).
+  // Ambang warna sama dengan kartu: Merah <15% / Kuning 15-19% / Hijau ≥20% (target 20%).
+  // Kalau datanya masih sebagian (traffic belum terisi sebulan penuh), selalu dikasih catatan.
+  if(d.cr_traffic!==null){
+    var cr=d.cr_traffic;
+    var crNote=d.crPartial?' Catatan: datanya masih sebagian — baru '+d.crDays+' dari '+d.crNotaDays+' hari yang punya data traffic, jadi belum final.':'';
+    var crBase='Closing Rate '+cr+'% ('+d.crNota.toLocaleString('id-ID')+' nota ÷ '+d.crTraffic.toLocaleString('id-ID')+' traffic)';
     if(cr>=20){
-      items.push({pri:'good',ico:'✅',title:'Closing Rate Online Sehat',
-        body:'Closing Rate Online '+cr+'% — udah di atas target ideal (20-25%). Lead baru bergerak jadi pembeli dengan baik. Pertahankan cara CS closing yang sekarang.'});
+      items.push({pri:d.crPartial?'warn':'good',ico:d.crPartial?'⚠️':'✅',title:'Closing Rate Sehat'+(d.crPartial?' (Data Sebagian)':''),
+        body:crBase+' — udah di atas target 20%. Traffic yang masuk bergerak jadi nota dengan baik. Pertahankan cara CS closing yang sekarang.'+crNote});
     } else if(cr>=15){
-      items.push({pri:'warn',ico:'⚠️',title:'Closing Rate Online Mendekati Target',
-        body:'Closing Rate Online '+cr+'% — kuning, mendekati target ideal (20-25%) tapi belum tercapai. Cek: (1) kualitas lead yang masuk, (2) cara CS menawarkan produk, (3) alasan lead tidak jadi beli.'});
+      items.push({pri:'warn',ico:'⚠️',title:'Closing Rate Mendekati Target',
+        body:crBase+' — kuning, mendekati target 20% tapi belum tercapai. Cek: (1) kualitas traffic yang masuk, (2) cara CS menawarkan produk, (3) alasan chat tidak jadi beli.'+crNote});
     } else {
-      items.push({pri:'urgent',ico:'🚨',title:'Closing Rate Online di Bawah Target',
-        body:'Closing Rate Online '+cr+'% — merah, di bawah target ideal (20-25%). Wajib cek: (1) kualitas lead yang masuk, (2) cara CS menawarkan produk, (3) alasan lead tidak jadi beli. Fokus: lead baru harus bergerak jadi pembeli.'});
+      items.push({pri:'urgent',ico:'🚨',title:'Closing Rate di Bawah Target',
+        body:crBase+' — merah, di bawah target 20%. Wajib cek: (1) kualitas traffic yang masuk, (2) cara CS menawarkan produk, (3) alasan chat tidak jadi beli. Fokus: traffic harus bergerak jadi nota.'+crNote});
     }
   }
 
@@ -2359,8 +2446,8 @@ function exportData(){
   rows+=csvRow(['Total Leads Masuk',d.total_leads_masuk,'Leads TDK + Offline Tx']);
   rows+=csvRow(['  → Leads WA/TDK',d.leads.total,'Dari Database TDK']);
   rows+=csvRow(['  → Pembeli Offline',d.offline_tx,'Transaksi - Beli TDK']);
-  rows+=csvRow(['Closing Rate Kumulatif',d.closing_rate+'%','Transaksi / Total Leads']);
-  rows+=csvRow(['  → CR Online (WA/TDK)',d.cr_online+'%','Beli TDK / Leads TDK']);
+  rows+=csvRow(['Closing Rate (Nota ÷ Traffic)',d.cr_traffic!==null?d.cr_traffic+'%':'—',d.cr_traffic!==null?(d.crNota+' Jumlah Nota ÷ '+d.crTraffic+' Traffic (Chat New + Existing + Leads Offline), '+d.crDays+' hari'+(d.crPartial?' — DATA SEBAGIAN: baru '+d.crDays+' dari '+d.crNotaDays+' hari punya data traffic':'')+(d.crAdMiss>0?'; Leads Offline kosong di '+d.crAdMiss+' hari':'')):'Belum ada data Traffic / Nota harian']);
+  rows+=csvRow(['  → Rasio Beli TDK (WA/TDK)',d.cr_online+'%','Beli TDK / Leads TDK (status manual CS)']);
   rows+=csvRow(['  → CR Offline',d.cr_offline?'100%':'—','Walk-in = langsung beli']);
   rows+=csvRow(['','','']);
 
